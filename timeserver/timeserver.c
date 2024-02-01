@@ -1047,6 +1047,88 @@ RESULT SendSmsMessage()
 	return NORMAL;
 }
 
+//2020  mysql数据库由于qs_id重复冲突修改查询每个字段
+RESULT ProcessMsgQueue()
+{
+	char szSql[MAX_BUFFER_LEN];
+	CURSORSTRU struCursor;
+	int nCount=0;
+	
+	{
+		if(OpenDatabase(szServiceName,szDbName,szUser,szPwd)!=NORMAL)
+		{
+			PrintErrorLog(DBG_HERE, "open database error, [%s]\n", GetSQLErrorMessage());
+			sleep(10);
+			return EXCEPTION;
+		}
+	}
+	while(TRUE)
+	{
+		if (SQLPingInterval(60) <0)
+        {
+        	CloseDatabase();
+	    	sleep(1);
+	    	if(OpenDatabase(szServiceName, szDbName, szUser, szPwd) != NORMAL)
+		    {
+		        PrintErrorLog(DBG_HERE, "timeserv process msg queue [%s]\n", GetSQLErrorMessage());
+		        return EXCEPTION;
+		    }
+        }
+
+		memset(szSql, 0, sizeof(szSql));
+		sprintf(szSql, "select count(*) as v_count from tt_msgqueue where qs_lasttime < '%s'", MakeSTimeFromITime((INT)time(NULL)));
+		//PrintDebugLog(DBG_HERE, "执行SQL语句[%s]\n", szSql);
+		if(SelectTableRecord(szSql, &struCursor) != NORMAL)
+		{
+			PrintErrorLog(DBG_HERE, "执行SQL语句[%s]错误, 信息为[%s]\n", \
+						  szSql, GetSQLErrorMessage());
+			CloseDatabase();
+			sleep(60);
+			return EXCEPTION;
+		}
+		if(FetchCursor(&struCursor) == NORMAL)
+		{
+			nCount = atoi(GetTableFieldValue(&struCursor, "v_count"));
+		}
+		FreeCursor(&struCursor);
+		if (nCount == 0)
+		{
+			sleep(60);
+			continue;
+		}
+		
+		
+		memset(szSql, 0, sizeof(szSql));
+    	snprintf(szSql, sizeof(szSql), 
+    			"INSERT INTO ne_msgqueue (qs_neid, qs_repeaterid, qs_deviceid, qs_content, qs_protocoltypeid, qs_telephonenum, qs_qrynumber, qs_commandcode, qs_servertelnum, qs_type, qs_eventtime, qs_level, qs_commtypeid, qs_netflag, qs_taskid, qs_tasklogid, qs_lasttime, qs_msgstat) " 
+				"SELECT qs_neid, qs_repeaterid, qs_deviceid, qs_content, qs_protocoltypeid, qs_telephonenum, qs_qrynumber, qs_commandcode, qs_servertelnum, qs_type, qs_eventtime, qs_level, qs_commtypeid, qs_netflag, qs_taskid, qs_tasklogid, qs_lasttime, qs_msgstat FROM tt_msgqueue where qs_lasttime < '%s'", 
+				MakeSTimeFromITime((INT)time(NULL)));
+    	PrintDebugLog(DBG_HERE, "开始执行SQL[%s]\n", szSql);
+		if(ExecuteSQL(szSql) != NORMAL)
+		{
+			PrintErrorLog(DBG_HERE, "执行SQL语句失败[%s][%s]\n",
+				szSql, GetSQLErrorMessage());
+    	    return EXCEPTION;
+		}
+    	CommitTransaction();
+    	
+    	memset(szSql, 0, sizeof(szSql));
+    	snprintf(szSql, sizeof(szSql), "delete from tt_msgqueue where qs_lasttime < '%s'", MakeSTimeFromITime((INT)time(NULL)));
+    	PrintDebugLog(DBG_HERE, "开始执行SQL[%s]\n", szSql);
+		if(ExecuteSQL(szSql) != NORMAL)
+		{
+			PrintErrorLog(DBG_HERE, "执行SQL语句失败[%s][%s]\n",
+				szSql, GetSQLErrorMessage());
+    	    return EXCEPTION;
+		}
+    	CommitTransaction();
+    	
+    	sleep(10);
+    
+	}
+    return NORMAL;
+}
+
 /*
  * 处理告警传输
  */
@@ -1711,6 +1793,7 @@ RESULT ProcRedisHeartBeat()
 		}
 		if (nTimes>0)
 		{
+			PrintDebugLog(DBG_HERE, "ntime, %d [%s]\n",  nTimes, szRepeaterIds);
 			TrimRightOneChar(szRepeaterIds, ',');
 			//PrintDebugLog(DBG_HERE, "repeater id list, %s\n", szRepeaterIds);
 			int nCount = 0;
@@ -1761,6 +1844,10 @@ RESULT ProcRedisHeartBeat()
 				if (p != NULL)
 					*p = '\0';
 				}
+				if (strlen(repeaterids)<1){
+					PrintDebugLog(DBG_HERE, "unexpect logic, [%s]", szRepeaterIds);
+					continue;
+				}
 				snprintf(szSql, sizeof(szSql), "update man_linklog set mnt_lastupdatetime=NOW() where mnt_repeaterid in (%s)", repeaterids);
 				PrintDebugLog(DBG_HERE, "Execute SQL[%s]\n", szSql);
 				if(ExecuteSQL(szSql) != NORMAL)
@@ -1769,8 +1856,7 @@ RESULT ProcRedisHeartBeat()
 					continue;
 				}
 				CommitTransaction();
-			}
-		
+		}
 		ClearRedisEleqrylog();
 	}
 	FreeRedisConn();

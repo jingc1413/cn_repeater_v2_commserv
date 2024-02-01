@@ -978,6 +978,28 @@ RESULT ProcessGprsQueue(int nSock, UINT nRepeaterId, int nDeviceId, struct socka
 	return NORMAL;
 }
 
+char* charToHex(char* str, int len)
+{
+    //int len = strlen(str);
+    char* hex = malloc(2 * len + 1); // Allocate memory for the hexadecimal string
+    for (int i = 0; i < len; i++) {
+        sprintf(hex + 2 * i, "%02x", str[i]); // Convert each character to a hexadecimal value
+    }
+    hex[2 * len] = '\0'; // Add the null terminator
+    return hex;
+}
+
+void charArrayToHex(char* input, char* output, int len) {
+    static const char hexdigits[] = "0123456789abcdef";
+    
+    for (int i = 0; i < len; ++i) {
+        unsigned char c = input[i];
+        output[i*2]   = hexdigits[c >> 4];  // High nibble
+        output[i*2+1] = hexdigits[c & 0xf];  // Low nibble
+    }
+    output[len * 2] = '\0';  // Null terminate the hex string
+}
+
 RESULT ProcessGrruData(INT nSock, PSTR pszCaReqBuffer, INT nLen, struct sockaddr *pstruClientAddr, INT nAddrLen)
 {
     STR szReqBuffer[MAX_BUFFER_LEN];
@@ -991,15 +1013,22 @@ RESULT ProcessGrruData(INT nSock, PSTR pszCaReqBuffer, INT nLen, struct sockaddr
     int nEnd=-1;
     int index = 0;
 
+	char pHex[2048];
+ 	charArrayToHex(pszCaReqBuffer, pHex, nLen);
+	PrintDebugLog(DBG_HERE, "recv data, %s\n", pHex);
+
     for(index=0; index<nLen; index++){
         if(pszCaReqBuffer[index] == 0x7E){
             nStart = index;
             break;
         }
     }
+
+	
     if (nStart<0)
     {
-        PrintErrorLog(DBG_HERE,"Failed to find start flag '0x7E'\n");
+		PrintDebugLog(DBG_HERE, "find start flag, %s\n", pHex);
+        PrintErrorLog(DBG_HERE,"Failed to find start flag '0x7E', %s\n", pHex);
         return EXCEPTION;
     }
     for(index=nStart+1; index<nLen;index++){
@@ -1011,6 +1040,7 @@ RESULT ProcessGrruData(INT nSock, PSTR pszCaReqBuffer, INT nLen, struct sockaddr
 
     if (nEnd<0)
     {
+		PrintDebugLog(DBG_HERE, "find end flag, %s\n", pHex);
         PrintErrorLog(DBG_HERE,"Failed to find end flag '0x7E'\n");
         return EXCEPTION;
     }

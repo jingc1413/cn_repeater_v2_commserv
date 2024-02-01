@@ -200,19 +200,21 @@ RESULT RedisHsetAndPush(PXMLSTRU  pstruXml)
 	
     int commProtocolType = atoi(DemandStrInXmlExt(pstruXml, "<omc>/<Í¨ÐÅ·½Ê½>"));
 	PrintDebugLog(DBG_HERE, "protocol type: %d\n", commProtocolType);
-	if (commProtocolType==6){
-		reply = redisCommand(redisconn,"LPUSH Queue%u %s", atol(DemandStrInXmlExt(pstruXml, "<omc>/<Õ¾µã±àºÅ>")), pMessageBoby);
-	}else{
+	//if (commProtocolType==6){
+	//reply = redisCommand(redisconn,"LPUSH Queue%u %s", atol(DemandStrInXmlExt(pstruXml, "<omc>/<Õ¾µã±àºÅ>")), pMessageBoby);
+	//}else{
 		reply = redisCommand(redisconn,"LPUSH qryset_queue %s", pMessageBoby);	
 		PrintDebugLog(DBG_HERE, "lpush qryset_queue %d %s\n", atoi(DemandStrInXmlExt(pstruXml, "<omc>/<Éè±¸±àºÅ>")),  pMessageBoby);
-		PrintDebugLog(DBG_HERE, "LPUSH %u_%d %s\n", atol(DemandStrInXmlExt(pstruXml, "<omc>/<Õ¾µã±àºÅ>")),
-			atoi(DemandStrInXmlExt(pstruXml, "<omc>/<Éè±¸±àºÅ>")),  pMessageBoby);
-	}
+	//	PrintDebugLog(DBG_HERE, "LPUSH %u_%d %s\n", atol(DemandStrInXmlExt(pstruXml, "<omc>/<Õ¾µã±àºÅ>")),
+	//		atoi(DemandStrInXmlExt(pstruXml, "<omc>/<Éè±¸±àºÅ>")),  pMessageBoby);
+	//}
+	//PrintDebugLog(DBG_HERE, "LPUSH %u_%d %s\n", atol(DemandStrInXmlExt(pstruXml, "<omc>/<Õ¾µã±àºÅ>")),
+	//		atoi(DemandStrInXmlExt(pstruXml, "<omc>/<Éè±¸±àºÅ>")),  pMessageBoby);
 	
     freeReplyObject(reply);
      
-	reply = redisCommand(redisconn,"EXPIRE Queue%u 43200", atol(DemandStrInXmlExt(pstruXml, "<omc>/<Õ¾µã±àºÅ>")));
-    freeReplyObject(reply);
+	//reply = redisCommand(redisconn,"EXPIRE Queue%u 43200", atol(DemandStrInXmlExt(pstruXml, "<omc>/<Õ¾µã±àºÅ>")));
+    //freeReplyObject(reply);
     
     if(pEleQryLogBoby)
 		free(pEleQryLogBoby);

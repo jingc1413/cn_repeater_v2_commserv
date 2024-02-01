@@ -1990,13 +1990,21 @@ RESULT UpdateEleSetLogFromComm(SENDPACKAGE *pstruSendPackage, PSTR pszQryNumber,
 	    {
 	    	if (strncmp(pszContentStr[i], "E", 1) == 0 || strncmp(pszContentStr[i], "e", 1) == 0)
 	    		pszContentStr[i] = pszContentStr[i]+1;
-	    	sprintf(szElementSql, "%s ne_Lon= %s,", szElementSql, pszContentStr[i]);	
+			if (strlen(pszContentStr[i])>0){
+				sprintf(szElementSql, "%s ne_Lon= %s,", szElementSql, pszContentStr[i]);
+			}else{
+				sprintf(szElementSql, "%s ne_Lon= %d,", szElementSql, 0);
+			}
 	    }
 	    else if (strcmp(pszPropertyStr[i], "0008") == 0 || strcmp(pszPropertyStr[i], "00000008") == 0) //Î³¶È
 	    {
 	    	if (strncmp(pszContentStr[i], "N", 1) == 0 || strncmp(pszContentStr[i], "n", 1) == 0)
 	    		pszContentStr[i] = pszContentStr[i]+1;
-	    	sprintf(szElementSql, "%s ne_Lat= %s,", szElementSql, pszContentStr[i]);		    	
+			if (strlen(pszContentStr[i])>0){
+				sprintf(szElementSql, "%s ne_Lat= %s,", szElementSql, pszContentStr[i]);
+			}else{
+				sprintf(szElementSql, "%s ne_Lat= %d,", szElementSql, 0);
+			}
 	    }	
 	    else if (strcmp(pszPropertyStr[i], "0009") == 0) //
 	        sprintf(szElementSql, "%s ne_ObjList= '%s',", szElementSql, pszContentStr[i]);
@@ -3898,13 +3906,21 @@ RESULT UpdateEleQryLogFromComm(SENDPACKAGE *pstruSendPackage, PSTR pszProperty, 
 	    {
 	    	if (strncmp(pszContentStr[i], "E", 1) == 0 || strncmp(pszContentStr[i], "e", 1) == 0)
 	    		pszContentStr[i] = pszContentStr[i]+1;
-	    	sprintf(szElementSql, "%s ne_Lon= %s,", szElementSql, pszContentStr[i]);
+			if (strlen(pszContentStr[i])>0){
+				sprintf(szElementSql, "%s ne_Lon= %s,", szElementSql, pszContentStr[i]);
+			}else{
+				sprintf(szElementSql, "%s ne_Lon= %d,", szElementSql, 0);
+			}
 	    }
 	    else if (strcmp(pszPropertyStr[i], "0008") == 0 || strcmp(pszPropertyStr[i], "00000008") == 0) //Î³¶È
 	    {
 	    	if (strncmp(pszContentStr[i], "N", 1) == 0 || strncmp(pszContentStr[i], "n", 1) == 0)
 	    		pszContentStr[i] = pszContentStr[i]+1;
-	    	sprintf(szElementSql, "%s ne_Lat= %s,", szElementSql, pszContentStr[i]);
+			if (strlen(pszContentStr[i])>0){
+				sprintf(szElementSql, "%s ne_Lat= %s,", szElementSql, pszContentStr[i]);
+			}else{
+				sprintf(szElementSql, "%s ne_Lat= %d,", szElementSql, 0);
+			}
 	    }	    	
 	    else if (strcmp(pszPropertyStr[i], "0009") == 0 || strcmp(pszPropertyStr[i], "00000009") == 0) //
 	        sprintf(szElementSql, "%s ne_ObjList= '%s',", szElementSql, pszContentStr[i]);
