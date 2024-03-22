@@ -1021,7 +1021,7 @@ RESULT ProcessTurnTask(PSTR pszCaReqBuffer)
 		     	 	
 		     	 if (strcmp(szStyle, "213") == 0)//批量查询
 		     	 {
-		     	 	 	     	 	 
+                     // man_taskpoll table filter logic
 			 	     if (strstr(szTaskQryParm, "base") != NULL && strlen(szBase) >= 4)                    
 			     	 {
 	             	 	 memset(szSepStr, 0, sizeof(szSepStr));
@@ -1031,8 +1031,10 @@ RESULT ProcessTurnTask(PSTR pszCaReqBuffer)
 		             	 {
 							memset(szTemp, 0, sizeof(szTemp));
 		             	 	strncpy(szTemp, pszTempStr[i], strlen(pszTempStr[i]));
-		             	 	if (nPollDeviceTypeId > 0 && strstr(szBasePoll, szTemp) == NULL)
-		             	 		continue;
+		             	 	if (nPollDeviceTypeId > 0 && strstr(szBasePoll, szTemp) == NULL){
+								//PrintDebugLog(DBG_HERE, "base not found mapid, repeaterid[%08X], neid[%d], basepoll[%s], mapid[%s]\n", struRepeater.nRepeaterId, nNeId, szBasePoll, szTemp);
+								continue;
+							}
 		             	 	//if (strstr(szObjList, szTemp) != NULL)
 		                 		sprintf(szQryEleParam, "%s%s,", szQryEleParam, szTemp);
 		                 }
@@ -1046,8 +1048,10 @@ RESULT ProcessTurnTask(PSTR pszCaReqBuffer)
 				 	     {
 							 memset(szTemp, 0, sizeof(szTemp));
 					 	     strncpy(szTemp, pszTempStr[i], strlen(pszTempStr[i]));
-					 	     if (nPollDeviceTypeId > 0 && strstr(szAlarmenPoll, szTemp) == NULL)
+					 	     if (nPollDeviceTypeId > 0 && strstr(szAlarmenPoll, szTemp) == NULL){
+									//PrintDebugLog(DBG_HERE, "alarmen not found mapid, repeaterid[%08X], neid[%d], alarmpoll[%s], mapid[%s]\n", struRepeater.nRepeaterId, nNeId, szAlarmenPoll, szTemp);
 			             	 		continue;
+						 	 }
 					 	     //if (strstr(szObjList, szTemp) != NULL)
 					 	     	sprintf(szQryEleParam, "%s%s,", szQryEleParam, szTemp);
 				 	     }
@@ -1061,8 +1065,10 @@ RESULT ProcessTurnTask(PSTR pszCaReqBuffer)
 		             	 {
 							memset(szTemp, 0, sizeof(szTemp));
 		             	 	strncpy(szTemp, pszTempStr[i], strlen(pszTempStr[i]));
-		             	 	if (nPollDeviceTypeId > 0 && strstr(szRadioPoll, szTemp) == NULL)
-		             	 		continue;
+		             	 	if (nPollDeviceTypeId > 0 && strstr(szRadioPoll, szTemp) == NULL){
+		             	 		//PrintDebugLog(DBG_HERE, "radio not found mapid, repeaterid[%08X], neid[%d], radiopoll[%s], mapid[%s]\n", struRepeater.nRepeaterId, nNeId, szRadioPoll, szTemp);
+								continue;
+							}
 		             	 	//if (strstr(szObjList, szTemp) != NULL)
 		                 		sprintf(szQryEleParam, "%s%s,", szQryEleParam, szTemp);
 		                 }
@@ -1076,8 +1082,10 @@ RESULT ProcessTurnTask(PSTR pszCaReqBuffer)
 		             	 {
 							memset(szTemp, 0, sizeof(szTemp));
 		             	 	strncpy(szTemp, pszTempStr[i], strlen(pszTempStr[i]));
-		             	 	if (nPollDeviceTypeId > 0 && strstr(szRadioSCPoll, szTemp) == NULL)
-		             	 		continue;
+		             	 	if (nPollDeviceTypeId > 0 && strstr(szRadioSCPoll, szTemp) == NULL){
+		             	 		//PrintDebugLog(DBG_HERE, "radiosc not found mapid, repeaterid[%08X], neid[%d], radioscpoll[%s], mapid[%s]\n", struRepeater.nRepeaterId, nNeId, szRadioSCPoll, szTemp);
+								continue;
+							}
 		             	 	//if (strstr(szObjList, szTemp) != NULL)
 		                 		sprintf(szQryEleParam, "%s%s,", szQryEleParam, szTemp);
 		                 }
@@ -1091,8 +1099,10 @@ RESULT ProcessTurnTask(PSTR pszCaReqBuffer)
 		             	 {
 							memset(szTemp, 0, sizeof(szTemp));
 		             	 	strncpy(szTemp, pszTempStr[i], strlen(pszTempStr[i]));
-		             	 	if (nPollDeviceTypeId > 0 && strstr(szRealTimePoll, szTemp) == NULL)
-		             	 		continue;
+		             	 	if (nPollDeviceTypeId > 0 && strstr(szRealTimePoll, szTemp) == NULL){
+		             	 		//PrintDebugLog(DBG_HERE, "realtime not found mapid, repeaterid[%08X], neid[%d], realtimepoll[%s], mapid[%s]\n", struRepeater.nRepeaterId, nNeId, szRealTimePoll, szTemp);
+								continue;
+							}
 		             	 	//if (strstr(szObjList, szTemp) != NULL)
 		                 		sprintf(szQryEleParam, "%s%s,", szQryEleParam, szTemp);
 		                 }
@@ -1128,14 +1138,17 @@ RESULT ProcessTurnTask(PSTR pszCaReqBuffer)
 	             }
 	                          
              	 
-             	 PrintDebugLog(DBG_HERE, "neid[%d]taskQryParm[%s]EleParam[%s]\n", nNeId, szTaskQryParm, szQryEleParam);
+             	 PrintDebugLog(DBG_HERE, "repeaterid[%08X], neid[%d]taskQryParm[%s]EleParam[%s]\n", struRepeater.nRepeaterId, nNeId, szTaskQryParm, szQryEleParam);
 		     	 	             
 	             if (struRepeater.nCommType == 5 || struRepeater.nCommType == 6)
 	             	ResolveQryParamArrayGprs(szQryEleParam);
 	             else	
 	             	ResolveQryParamArray(szQryEleParam);
 	             //为空不轮训     
-	             if (strlen(szQryEleParam) == 0) continue;
+	             if (strlen(szQryEleParam) == 0) {
+					
+					continue;
+				 }
 	             PrintDebugLog(DBG_HERE, "turn task[%s]\n", szQryEleParam);
 	             
 	             if (nTimes++>= 6)//校准发送时间
@@ -1161,13 +1174,18 @@ RESULT ProcessTurnTask(PSTR pszCaReqBuffer)
 	            	 
 	            	 if (struRepeater.nCommType == 5 || struRepeater.nCommType == 6)
 	            	 {
-	            	 	QryElementParam(M2G_TCPIP, &struHead, &struRepeater, pstruXml);
+	            	 	if (QryElementParam(M2G_TCPIP, &struHead, &struRepeater, pstruXml) != NORMAL){
+							PrintDebugLog(DBG_HERE, "query element param failed[%d]\n", struRepeater.nCommType);
+							continue;
+						}
 	            	 	SaveToGprsQueue(pstruXml);
 	            	 }
 	            	 else
 	            	 {
-			         	QryElementParam(M2G_SMS, &struHead, &struRepeater, pstruXml);
-			         	
+			         	if(QryElementParam(M2G_SMS, &struHead, &struRepeater, pstruXml) != NORMAL){
+			        		PrintDebugLog(DBG_HERE, "query element param failed[%d]\n", struRepeater.nCommType);
+							continue;
+						}
 			         	//动态分配特服务号
 			         	//DistServerTelNum(pstruXml);
 			         	SaveToMsgQueue_Tmp(pstruXml);
@@ -1228,10 +1246,9 @@ RESULT ProcessTurnTask(PSTR pszCaReqBuffer)
 				}
 				FreeCursor(&struCursor_CG);	   
 				
+			}else{
+				PrintErrorLog(DBG_HERE, "not soupport protocol, %d\n", struHead.nProtocolType);
 			}	
-		     
-
-
         } 
         else //设置 1为查询:COMMAND_SET
         {
