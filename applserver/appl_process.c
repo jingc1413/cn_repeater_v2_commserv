@@ -874,7 +874,9 @@ RESULT Process2GSms(PSTR pszUndecode,PSTR pszTelephone,PSTR pszNetCenterNum, int
 		 }
 		 else if (nCommUpType == 0x08) //远程升级结果上报
 		 {
-		     
+		     nNeId = GetNeId(nRepeaterId, nDeviceId, pszTelephone, &bIsNewNeId);
+			 struSendPackage.nNeId = nNeId;
+
 		 	 sprintf(szTemp, "%d", struSendPackage.nNeId);
 		     InsertInXmlExt(pstruXml,"<omc>/<网元编号>", szTemp, MODE_AUTOGROW|MODE_UNIQUENAME);
 		     sprintf(szTemp, "%u", struSendPackage.struRepeater.nRepeaterId);
@@ -1759,7 +1761,8 @@ RESULT Process2GGprs(int nQryLogId, PSTR pszUndecode, INT nLen)
 	         //////////////////////////////////////////查询监控量
 	         if (bIsNewNeId == BOOLFALSE)
 	         {
-	             QueryMapList(M2G_TCPIP, &struSendPackage.struHead, &struSendPackage.struRepeater, pstruXml);
+				QueryAlarmObjectMapList(M2G_TCPIP, &struSendPackage.struHead, &struSendPackage.struRepeater, pstruXml);
+	            //QueryMapList(M2G_TCPIP, &struSendPackage.struHead, &struSendPackage.struRepeater, pstruXml);
 	             InitPackageToXml(&struSendPackage, pstruXml);
 
 	             SaveToMaintainLog("修复上报", "",  &struSendPackage);
@@ -1822,7 +1825,9 @@ RESULT Process2GGprs(int nQryLogId, PSTR pszUndecode, INT nLen)
 		}
 		else if (nCommUpType == 0x08) //远程升级结果上报
 		{
-		    
+		    nNeId = GetNeId(nRepeaterId, nDeviceId, "", &bIsNewNeId);
+			struSendPackage.nNeId = nNeId;
+
 			sprintf(szTemp, "%d", struSendPackage.nNeId);
 		    InsertInXmlExt(pstruXml,"<omc>/<网元编号>", szTemp, MODE_AUTOGROW|MODE_UNIQUENAME);
 		    InsertInXmlExt(pstruXml,"<omc>/<网元编号>", szTemp, MODE_AUTOGROW|MODE_UNIQUENAME);
@@ -1847,13 +1852,16 @@ RESULT Process2GGprs(int nQryLogId, PSTR pszUndecode, INT nLen)
 		}
 		else if (nCommUpType == 0x09) //GPRS登录失败上报
 		{
-		   
+		    nNeId = GetNeId(nRepeaterId, nDeviceId, "", &bIsNewNeId);
+			struSendPackage.nNeId = nNeId;
 		    SaveToMaintainLog("GPRS登录失败上报", "",  &struSendPackage);
 		}
 		else if (nCommUpType == 0x0A) //批采结束上报
 		{
 			char szMapObject[100];
 		    
+			nNeId = GetNeId(nRepeaterId, nDeviceId, "", &bIsNewNeId);
+			struSendPackage.nNeId = nNeId;
 		    SaveToMaintainLog("批采结束上报", "",  &struSendPackage);
 		    /*取设备IP和端口 */
 	         	if (GetDeviceIp(nRepeaterId, nDeviceId, szDeviceIp, &nDevicePort) != NORMAL)
@@ -1895,7 +1903,8 @@ RESULT Process2GGprs(int nQryLogId, PSTR pszUndecode, INT nLen)
 		}
 		else if (nCommUpType == 0x0B) //软件异常复位上报
 		{
-		   
+		    nNeId = GetNeId(nRepeaterId, nDeviceId, "", &bIsNewNeId);
+			struSendPackage.nNeId = nNeId;
 		    SaveToMaintainLog("软件异常复位上报", "",  &struSendPackage);
 		}
 		else if (nCommUpType == 0x20 || nCommUpType == 0x21 || nCommUpType == 0xC9) //定时上报
@@ -1920,7 +1929,8 @@ RESULT Process2GGprs(int nQryLogId, PSTR pszUndecode, INT nLen)
 		
 		else if (nCommUpType == 0x26) //远程升级请求上报
 		{
-		    
+		    nNeId = GetNeId(nRepeaterId, nDeviceId, "", &bIsNewNeId);
+			struSendPackage.nNeId = nNeId;
 		    SaveToMaintainLog("远程升级请求上报", "",  &struSendPackage);
 		}
 		else if (nCommUpType == 0xF1 || nCommUpType == 0xF2) //das变更上报, das删除上报
