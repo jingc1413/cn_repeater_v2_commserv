@@ -341,6 +341,7 @@ RESULT DecodeQueryMapList(SENDPACKAGE *pstruSendPackage);
 RESULT QryElementParam(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pstruRepeater, PXMLSTRU pstruXml);
 RESULT SetElementParam(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pstruRepeater, PXMLSTRU pstruXml);
 RESULT QueryMapList(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pstruRepeater, PXMLSTRU pstruXml);
+RESULT QueryAlarmObjectMapList(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pstruRepeater, PXMLSTRU pstruXml);
 RESULT SaveSysErrorLog(INT nNeId, PSTR pszErrMapId,PSTR pszErrorId, PSTR pszRecvMsg);
 RESULT UpdateEleFromCommByPacket(PSTR pszQryNumber, PSTR pszContent, PSTR pszAlarmName, PSTR pszAlarmValue);
 RESULT UpdateEleSetLogFromComm(SENDPACKAGE *pstruSendPackage, PSTR pszQryNumber, PSTR pszProperty, PSTR pszContent);

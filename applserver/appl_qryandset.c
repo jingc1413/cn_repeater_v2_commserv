@@ -48,14 +48,17 @@ RESULT QryElementParam(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pst
 	{
 		bufclr(szMapObject);
 		strcpy(szParam, DemandStrInXmlExt(pstruXml, "<omc>/<监控对象>"));
-		nSepCount = SeperateString(szParam, ',',pszSeperateStr, MAX_SEPERATE_NUM);
-	
+		nSepCount = SeperateString(szParam, ',', pszSeperateStr, MAX_SEPERATE_NUM);
 		//将放入分割参数
 		for(i=0; i< nSepCount; i++)
 		{
-			if (strlen(pszSeperateStr[i]) != 4) continue;
+			if (strlen(pszSeperateStr[i]) != 4) {
+				PrintDebugLog(DBG_HERE, "fileter 2g protocol type mapid[%08X - %s - %d]\n", pstruRepeater->nRepeaterId, szParam, pstruHead->nProtocolType);
+				continue;
+			}
 			memset(&struObjList[nObjCount], 0, sizeof(OBJECTSTRU));
 			struObjList[nObjCount].MapID = strHexToInt(pszSeperateStr[i]);
+			//PrintDebugLog(DBG_HERE, "~~~~~ mapid equal, %s - %d\n", pszSeperateStr[i], struObjList[nObjCount].MapID);
 			if (struObjList[nObjCount].MapID == 0x0606) //批采数据
 			{
 				struObjList[nObjCount].OC[0] = 0;
@@ -82,10 +85,15 @@ RESULT QryElementParam(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pst
 				    continue;
 			    }
 			    struObjList[nObjCount].OL = nDataLen;
+				//PrintDebugLog(DBG_HERE, "get mapid from cache, %s - %s, %d\n", pszSeperateStr[i], szDataType, nDataLen);
 			}
 			sprintf(szMapObject, "%s%s,", szMapObject, pszSeperateStr[i]);
 			nObjCount++;
 			//PrintDebugLog(DBG_HERE, "监控编号[%04X]\n", struObjList[i].MapID);
+		}
+		if(nObjCount == 0){
+			PrintDebugLog(DBG_HERE, "2g current device protocol-type and mapid not match[%08X - %s - %d]\n", pstruRepeater->nRepeaterId, szParam, pstruHead->nProtocolType);
+			return EXCEPTION;
 		}
 		TrimRightChar(szMapObject, ',');
 		InsertInXmlExt(pstruXml,"<omc>/<监控对象>",szMapObject,MODE_AUTOGROW|MODE_UNIQUENAME);
@@ -250,7 +258,8 @@ RESULT QryElementParam(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pst
 	    sprintf(szTemp, "%d", n2G_QB);
 	    InsertInXmlExt(pstruXml,"<omc>/<序列号>",szTemp,MODE_AUTOGROW|MODE_UNIQUENAME);
 	}
-	else if (pstruHead->nProtocolType == PROTOCOL_DAS)
+	else if (pstruHead->nProtocolType == PROTOCOL_DAS ||
+	pstruHead->nProtocolType == PROTOCOL_JINXIN_DAS)
 	{
 		bufclr(szMapObject);
 		strcpy(szParam, DemandStrInXmlExt(pstruXml, "<omc>/<监控对象>"));
@@ -259,9 +268,13 @@ RESULT QryElementParam(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pst
 		//将放入分割参数
 		for(i=0; i< nSepCount; i++)
 		{
-			if (strlen(pszSeperateStr[i]) != 8) continue;
+			if (strlen(pszSeperateStr[i]) != 8) {
+				PrintDebugLog(DBG_HERE, "fileter das protocol type mapid[%08X - %s - %d]\n", pstruRepeater->nRepeaterId, szParam, pstruHead->nProtocolType);
+				continue;
+			}
 			memset(&struObjList[nObjCount], 0, sizeof(OBJECTSTRU));	
 		    struObjList[nObjCount].MapID = strHexToInt(pszSeperateStr[i]);
+			//PrintDebugLog(DBG_HERE, "~~~~~ mapid equal, %s - %d\n", pszSeperateStr[i], struObjList[nObjCount].MapID);
 			//判断时隙处理
 			GetMapIdFromCache2(pszSeperateStr[i], szDataType, szMapType, &nDataLen);
 			if (strcmp(szMapType, "ratedata") == 0)
@@ -292,6 +305,10 @@ RESULT QryElementParam(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pst
 			sprintf(szMapObject, "%s%s,", szMapObject, pszSeperateStr[i]);
 			nObjCount++;
 			//PrintDebugLog(DBG_HERE, "监控编号[%04X]\n", struObjList[i].MapID);
+		}
+		if(nObjCount == 0){
+			PrintDebugLog(DBG_HERE, "das current device protocol-type and mapid not match[%08X - %s - %d]\n", pstruRepeater->nRepeaterId, szParam, pstruHead->nProtocolType);
+			return EXCEPTION;
 		}
 		TrimRightChar(szMapObject, ',');
 		InsertInXmlExt(pstruXml,"<omc>/<监控对象>",szMapObject,MODE_AUTOGROW|MODE_UNIQUENAME);
@@ -338,7 +355,7 @@ RESULT QryElementParam(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pst
 	    sprintf(szTemp, "%d", n2G_QB);
 	    InsertInXmlExt(pstruXml,"<omc>/<序列号>",szTemp,MODE_AUTOGROW|MODE_UNIQUENAME);
 	}
-	else if (pstruHead->nProtocolType == PROTOCOL_JINXIN_DAS)
+	/*else if (pstruHead->nProtocolType == PROTOCOL_JINXIN_DAS)
 	{
 		bufclr(szMapObject);
 		strcpy(szParam, DemandStrInXmlExt(pstruXml, "<omc>/<监控对象>"));
@@ -348,6 +365,7 @@ RESULT QryElementParam(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pst
 		for(i=0; i< nSepCount; i++)
 		{
 		    memset(&struObjList[nObjCount], 0, sizeof(OBJECTSTRU));
+			//struObjList[nObjCount].MapID = strHexToInt(pszSeperateStr[i]);
 			if (GetMapIdFromCache(pszSeperateStr[i], szDataType, &nDataLen) != NORMAL)
 		    {
 		        PrintErrorLog(DBG_HERE, "系统不存在该[%s]监控量\n", pszSeperateStr[i]);
@@ -357,19 +375,25 @@ RESULT QryElementParam(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pst
 			struObjList[nObjCount].OL = nDataLen;
 			if (strlen(pszSeperateStr[i]) == 8)
 			{
-				if (GetMcpIdFromParam(atoi(DemandStrInXmlExt(pstruXml,"<omc>/<网元编号>")), pszSeperateStr[i], szMcpId)==NORMAL)
-				struObjList[nObjCount].MapID = strHexToInt(szMcpId);
+				if (GetMcpIdFromParam(atoi(DemandStrInXmlExt(pstruXml,"<omc>/<网元编号>")), pszSeperateStr[i], szMcpId)==NORMAL){
+					struObjList[nObjCount].MapID = strHexToInt(szMcpId);
+					PrintDebugLog(DBG_HERE, "-----------[%s - %s]监控量\n", pszSeperateStr[i], szMcpId);
+				}else{
+					PrintDebugLog(DBG_HERE, "系统不存在该[%s]监控量\n", pszSeperateStr[i]);
+					//continue;
+				}
 				sprintf(szMapObject, "%s%s,", szMapObject, szMcpId);
 				nObjCount++;
 			}
 			else
 			{
+				PrintDebugLog(DBG_HERE, "--------map id[%s]\n", pszSeperateStr[i]);
 				struObjList[nObjCount].MapID = strHexToInt(pszSeperateStr[i]);
 				sprintf(szMapObject, "%s%s,", szMapObject, pszSeperateStr[i]);
 				nObjCount++;
 			}
 			
-			//PrintDebugLog(DBG_HERE, "监控编号[%04X]\n", struObjList[i].MapID);
+			PrintDebugLog(DBG_HERE, "监控编号[%04X]\n", struObjList[i].MapID);
 		}
 		TrimRightChar(szMapObject, ',');
 		InsertInXmlExt(pstruXml,"<omc>/<监控对象>",szMapObject,MODE_AUTOGROW|MODE_UNIQUENAME);
@@ -415,7 +439,7 @@ RESULT QryElementParam(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pst
 	    InsertInXmlExt(pstruXml,"<omc>/<消息内容>",szMsgCont,MODE_AUTOGROW|MODE_UNIQUENAME);
 	    sprintf(szTemp, "%d", n2G_QB);
 	    InsertInXmlExt(pstruXml,"<omc>/<序列号>",szTemp,MODE_AUTOGROW|MODE_UNIQUENAME);
-	}	
+	}	*/
 	else
 	{
 	    PrintErrorLog(DBG_HERE, "系统不支持该协议[%d]\n", pstruHead->nProtocolType);
@@ -884,6 +908,142 @@ RESULT SetElementParam(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pst
 	
 	return NORMAL;
 }
+
+/**
+ * 取告警参量列表
+*/
+RESULT QueryAlarmObjectMapList(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pstruRepeater, PXMLSTRU pstruXml){
+	UINT nRepeaterId;
+	STR szAlarmObjList[1000] = {0};
+	STR szTemp[10];
+	STR szNeName[50];
+	INT nDeviceId, n2G_QB, nEleQryLogId, nNeId, nSepCount;
+	PSTR pszSeperateStr[MAX_OBJECT_NUM];  
+	OBJECTSTRU struObjList[MAX_OBJECT_NUM];
+
+	nRepeaterId = pstruRepeater->nRepeaterId;
+	nDeviceId = pstruRepeater->nDeviceId;
+	
+	if (GetAlarmObjList3(nRepeaterId, nDeviceId, &nNeId, szNeName, szAlarmObjList)!= NORMAL)
+	{
+		PrintErrorLog(DBG_HERE, "device [%u][%d]not exist\n", nRepeaterId, nDeviceId);
+		return EXCEPTION;
+	}
+	if(strlen(szAlarmObjList) < 1){
+		PrintErrorLog(DBG_HERE, "query alarm object nil [%u][%d]\n", nRepeaterId, nDeviceId);
+		return EXCEPTION;
+	}
+	//PrintDebugLog(DBG_HERE, "result alarm object, [%s]\n", szAlarmObjList);
+	nSepCount = SeperateString(szAlarmObjList, ',', pszSeperateStr, MAX_SEPERATE_NUM);
+	if(nSepCount < 1){
+		PrintErrorLog(DBG_HERE, "query alarm object sep [%s]\n", szAlarmObjList);
+		return EXCEPTION;
+	}
+
+	INT i = 0;
+	INT nObjCount = 0;
+	STR szDataType[20];
+	INT nDataLen;
+	
+	for(; i< nSepCount; i++){
+		PSTR objIdStr[128];
+		INT nSepObj;
+		STR objId[64];
+		strcpy(objId, pszSeperateStr[i]);
+		nSepObj = SeperateString(objId, ':', objIdStr, 10);
+		if(nSepObj < 2){
+			PrintErrorLog(DBG_HERE, "query alarm object format error[%s]\n", pszSeperateStr[i]);
+			continue;
+		}
+		memset(&struObjList[nObjCount], 0, sizeof(OBJECTSTRU));
+		if (GetMapIdFromCache(objIdStr[0], szDataType, &nDataLen) != NORMAL)
+		{
+			PrintErrorLog(DBG_HERE, "system [%s] object not exist\n", pszSeperateStr[i]);
+			continue;
+		}
+		//PrintDebugLog(DBG_HERE, "get mapid from cache, %s - %s, %d\n", objIdStr[0], szDataType, nDataLen);
+		struObjList[nObjCount].OL = nDataLen;
+		struObjList[nObjCount].MapID = strHexToInt(objIdStr[0]);
+		//PrintDebugLog(DBG_HERE, "index get mapid from cache, %s - %s, %d, %x, i=%d\n", objIdStr[0], szDataType, struObjList[nObjCount].OL, struObjList[nObjCount].MapID, i);
+
+		//PrintDebugLog(DBG_HERE, "mapid calc [%s - %s, %d, %d, %d, i=%d]\n", objIdStr[0], objIdStr[1], strHexToInt(objIdStr[0]), struObjList[i].MapID, struObjList[i].OL, i);
+		nObjCount++;
+		//if(nObjCount==3){
+		//	break;
+		//}
+	}
+	pstruHead->nObjectCount = nObjCount;
+	
+	STR szMsgCont[500+1];
+	BYTEARRAY struPack;
+	REPEATERINFO stuRepeInfo;
+
+	memset(szMsgCont, 0, sizeof(szMsgCont));
+	struPack.pPack = (BYTE*)szMsgCont;
+	struPack.Len = 0;
+
+	memset(&stuRepeInfo, 0, sizeof(stuRepeInfo));				
+	stuRepeInfo.DeviceId= pstruRepeater->nDeviceId;
+	stuRepeInfo.RepeaterId= pstruRepeater->nRepeaterId;
+
+	{
+		pstruHead->nCommandCode = COMMAND_QUERY;
+		//获取当前的2G协议流水号
+		if (strcmp(getenv("DATABASE"), "mysql") == 0)
+			n2G_QB = Get2GSerial("Mobile2G", &nEleQryLogId);
+		else
+			n2G_QB = GetCurrent2GSquenue();
+		sprintf(pstruHead->QA, "%d", nEleQryLogId);
+	}
+	PrintDebugLog(DBG_HERE, "DeviceId[%x], RepeaterId[%d], n2G_QB[%d], nObjCount[%d]\n", stuRepeInfo.DeviceId,
+	            stuRepeInfo.RepeaterId, n2G_QB, nObjCount);
+	
+	int itest=0;
+	for(;itest<nObjCount;itest++){
+		PrintDebugLog(DBG_HERE, "loop mapid, %d, [%x], datalen: %d\n", itest, struObjList[itest].MapID, struObjList[itest].OL);
+	}
+	int n2GPack_Ret = 0;
+	if(pstruHead->nProtocolType==PROTOCOL_2G ||
+	   pstruHead->nProtocolType==PROTOCOL_JINXIN_DAS){
+		n2GPack_Ret= Encode_2G(nCommType, QUERYCOMMAND, n2G_QB, &stuRepeInfo, struObjList, nObjCount, &struPack);
+	    if (nCommType == M2G_TCPIP)
+	    {
+			if(!AscEsc(&struPack))
+			{
+			    PrintErrorLog(DBG_HERE,"asc esc error[%s]\n",struPack.pPack);
+				return EXCEPTION;
+			}
+		}
+	    sprintf(szTemp, "%d", nEleQryLogId);
+	    InsertInXmlExt(pstruXml,"<omc>/<流水号>", szTemp, MODE_AUTOGROW|MODE_UNIQUENAME);
+	    InsertInXmlExt(pstruXml, "<omc>/<日志号>", szTemp, MODE_AUTOGROW|MODE_UNIQUENAME);
+	    InsertInXmlExt(pstruXml,"<omc>/<消息内容>",szMsgCont,MODE_AUTOGROW|MODE_UNIQUENAME);
+	    sprintf(szTemp, "%d", n2G_QB);
+	    InsertInXmlExt(pstruXml,"<omc>/<序列号>",szTemp,MODE_AUTOGROW|MODE_UNIQUENAME);
+	    //InsertInXmlExt(pstruXml,"<omc>/<监控对象>","0009",MODE_AUTOGROW|MODE_UNIQUENAME);
+	}
+	else if(pstruHead->nProtocolType==PROTOCOL_DAS){
+		n2GPack_Ret= Encode_Das(nCommType, QUERYCOMMAND, n2G_QB, &stuRepeInfo, struObjList, nObjCount, &struPack);
+	    if (nCommType == M2G_TCPIP)
+	    {
+			if(!AscEsc(&struPack))
+			{
+			    PrintErrorLog(DBG_HERE,"asc esc error[%s]\n",struPack.pPack);
+				return EXCEPTION;
+			}
+		}
+	    InsertInXmlExt(pstruXml,"<omc>/<流水号>", pstruHead->QA, MODE_AUTOGROW|MODE_UNIQUENAME);
+	    InsertInXmlExt(pstruXml,"<omc>/<消息内容>",szMsgCont,MODE_AUTOGROW|MODE_UNIQUENAME);
+	    sprintf(szTemp, "%d", n2G_QB);
+	    InsertInXmlExt(pstruXml,"<omc>/<序列号>",szTemp,MODE_AUTOGROW|MODE_UNIQUENAME);
+	    //InsertInXmlExt(pstruXml,"<omc>/<监控对象>","00000009",MODE_AUTOGROW|MODE_UNIQUENAME);
+	}else{
+		PrintErrorLog(DBG_HERE, "system not support protol[%d]\n", pstruHead->nProtocolType);
+		return EXCEPTION;
+	}
+	return NORMAL;
+}
+
 
 /* 
  * 查询监控量参数
