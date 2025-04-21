@@ -1137,6 +1137,7 @@ RESULT ProcessAlarmTransfer()
     STR szSql[MAX_SQL_LEN];
 	CURSORSTRU struCursor;
 	YIYANGSTRU struYiYangData;
+	STR szAreaCity[20];
 	STR szArea[20];
 	STR szSiteId[10];
 	STR szSendBuffer[MAX_BUFFER_LEN];
@@ -1197,11 +1198,13 @@ RESULT ProcessAlarmTransfer()
 								"ne_DeviceType.dtp_Name AS alg_DeviceTypeName, "
 								"ne_DeviceType.dtp_DeviceTypeId AS alg_DeviceTypeId, "
 								"case p.are_Grade when 1 then p.are_Name when 2 then (select are_Name from pre_Area where pre_Area.are_Code = p.are_Code) end ne_Area ,"
+								"pc.are_Name AS area_NameCity, "
 								"b.bs_SiteId, b.bs_SiteName, b.bs_lac "
 							"FROM tf_alarmlog_trigger t "
 								"LEFT JOIN  alm_Alarm ON alm_Alarm.alm_AlarmId = t.alg_AlarmId " 
 								"JOIN  ne_Element n ON n.ne_NeId = t.alg_NeId "
 								"LEFT JOIN  pre_Area p on n.ne_AreaId = p.are_AreaId  "
+								"LEFT JOIN pre_Area pc ON pc.are_AreaId = p.are_ParentId "
 								"LEFT JOIN  ne_Company ON ne_Company.co_CompanyId = n.ne_CompanyId  "
 								"LEFT JOIN  alm_AlarmLevel ON alm_AlarmLevel.alv_AlarmLevelId = alm_Alarm.alm_LevelId "
 								"LEFT JOIN  ne_DeviceType ON ne_DeviceType.dtp_DeviceTypeId = n.ne_DeviceTypeId "
@@ -1261,11 +1264,23 @@ RESULT ProcessAlarmTransfer()
 			if(strlen(GetTableFieldValue(&struCursor, "ne_Area"))>0){
 				strcpy(szArea, TrimAllSpace(GetTableFieldValue(&struCursor, "ne_Area")));
 			}
+			
+			if(strlen(GetTableFieldValue(&struCursor, "area_NameCity"))>0){
+				strcpy(szAreaCity, TrimAllSpace(GetTableFieldValue(&struCursor, "area_NameCity")));
+			}
+
 			if (strcmp(szArea, "") == 0)
 			    strcpy(szArea, "杭州");
 			if (strstr("杭州,宁波,温州,湖州,嘉兴,绍兴,金华,衢州,台州,丽水,舟山", szArea) != NULL)
 			    strcat(szArea, "市");
 		    strcpy(struYiYangData.szAlarmRegion, szArea);
+			if(strlen(szAreaCity) > 0 && strlen(szArea) > 0) {
+				// clear szAlarmRegion
+				memset(struYiYangData.szAlarmRegion, 0, sizeof(struYiYangData.szAlarmRegion));
+				// 格式化字符串拼接成 "城市-地区" 格式
+				snprintf(struYiYangData.szAlarmRegion, sizeof(struYiYangData.szAlarmRegion), "%s-%s", szAreaCity, szArea);
+			}
+		
 		    nSiteLevelId = atoi(GetTableFieldValue(&struCursor, "ne_sitelevelid"));
 		    if (nSiteLevelId == 1)
 		    	strcpy(struYiYangData.szSystemLevel, "普通");
@@ -1385,11 +1400,13 @@ RESULT ProcessAlarmTransfer()
 								"ne_DeviceType.dtp_Name AS alg_DeviceTypeName, "
 								"ne_DeviceType.dtp_DeviceTypeId AS alg_DeviceTypeId, "
 								"case p.are_Grade when 1 then p.are_Name when 2 then (select are_Name from pre_Area where pre_Area.are_Code = p.are_Code) end ne_Area ,"
+								"pc.are_Name AS area_NameCity, "
 								"b.bs_SiteId, b.bs_SiteName,bs_lac "
 							"FROM tf_alarmlog_trigger t "
 								"LEFT JOIN  alm_Alarm ON alm_Alarm.alm_AlarmId = t.alg_AlarmId " 
 								"JOIN  ne_Element n ON n.ne_NeId = t.alg_NeId "
 								"LEFT JOIN  pre_Area p on n.ne_AreaId = p.are_AreaId  "
+								"LEFT JOIN pre_Area pc ON pc.are_AreaId = p.are_ParentId "
 								"LEFT JOIN  ne_Company ON ne_Company.co_CompanyId = n.ne_CompanyId  "
 								"LEFT JOIN  alm_AlarmLevel ON alm_AlarmLevel.alv_AlarmLevelId = alm_Alarm.alm_LevelId "
 								"LEFT JOIN  ne_DeviceType ON ne_DeviceType.dtp_DeviceTypeId = n.ne_DeviceTypeId "
@@ -1437,12 +1454,24 @@ RESULT ProcessAlarmTransfer()
 			if(strlen(GetTableFieldValue(&struCursor, "ne_Area"))>0){
 				strcpy(szArea, TrimAllSpace(GetTableFieldValue(&struCursor, "ne_Area")));
 			}
+
+			memset(szAreaCity, 0, sizeof(szAreaCity));
+			if(strlen(GetTableFieldValue(&struCursor, "area_NameCity"))>0){
+				strcpy(szAreaCity, TrimAllSpace(GetTableFieldValue(&struCursor, "area_NameCity")));
+			}
+
 			if (strcmp(szArea, "") == 0)
 			    strcpy(szArea, "杭州");
 			if (strstr("杭州,宁波,温州,湖州,嘉兴,绍兴,金华,衢州,台州,丽水,舟山", szArea) != NULL)
 			    strcat(szArea, "市");
 		    strcpy(struYiYangData.szAlarmRegion, szArea);
-		    
+			if(strlen(szAreaCity) > 0 && strlen(szArea) > 0) {
+				// clear szAlarmRegion
+				memset(struYiYangData.szAlarmRegion, 0, sizeof(struYiYangData.szAlarmRegion));
+				// 格式化字符串拼接成 "城市-地区" 格式
+				snprintf(struYiYangData.szAlarmRegion, sizeof(struYiYangData.szAlarmRegion), "%s-%s", szAreaCity, szArea);
+			}
+
 		    nSiteLevelId = atoi(GetTableFieldValue(&struCursor, "ne_sitelevelid"));
 		    if (nSiteLevelId == 1)
 		    	strcpy(struYiYangData.szSystemLevel, "普通");
