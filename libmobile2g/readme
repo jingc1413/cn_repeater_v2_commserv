@@ -1,0 +1,16 @@
+Functions' relationship:
+Decode_2G()
+   -> M2G_SMS -> DecodeIntoLayerB()(a.k.a AP:B) -> DecodeNetworkLayer()   <-------------------------------+
+                                                     -> APID=0x03 -> DecodeDasAppLayer()(a.k.a MCP:C)     |
+                                                     -> APID=else -> DecodeAppLayer()(a.k.a MCP:A)        |
+   -> M2G_TCPIP -> DecodeIntoLayerC()(a.k.a AP:C) -> DecodeNetworkLayer() <-------------------------------+
+
+
+
+File & Function:
+DasAppLayer.c - provide DecodeDasAppLayer(), decode MCP:C
+Mobile2GAppLayer.c - provide DecodeAppLayer(), decode MCP:A
+Mobile2GControl.c - provide Decode_2G()/Encode_2G()
+Mobile2GIntoLayerB.c - provide DecodeIntoLayerB(), decode AP:B
+Mobile2GIntoLayerC.c - provide DecodeIntoLayerC(), decode AP:C
+Mobile2GNetworkLayer.c - provide DecodeNetworkLayer(), decode NP(a.k.a VP)
