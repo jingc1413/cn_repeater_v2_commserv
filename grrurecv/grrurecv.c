@@ -1141,6 +1141,7 @@ RESULT ProcessGrruData(INT nSock, PSTR pszCaReqBuffer, INT nLen, struct sockaddr
     
     if(nWuXian==1 || getenv("WUXIAN")!=NULL)
     {
+		sleep(2);
 		ProcessRedisQueue(nSock, nRepeaterId, nDeviceId, pstruClientAddr, nAddrLen);
 	}
 

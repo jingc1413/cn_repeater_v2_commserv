@@ -9,10 +9,27 @@
 #include <omcpublic.h>
 #include <applserver.h>
 #include <mobile2g.h>
+#include <stdbool.h>
 
 static int n_gNeId;
 static int n_gTaskId;
 static int n_gTaskLogId;
+
+long long get_timestamp(void) {
+    struct timeval tv;
+    if (gettimeofday(&tv, NULL) == -1) {
+        perror("gettimeofday");
+        return -1;  // or handle error as appropriate
+    }
+    long long tmp = (long long)tv.tv_sec * 1000LL + (long long)tv.tv_usec / 1000;
+    return tmp;
+}
+
+bool checkBDTarget(const char *str) {
+    return (strstr(str, "000000BD") != NULL) || 
+           (strstr(str, "000004BD") != NULL);
+}
+
 
 /* 
  * 查询网元参数
@@ -28,7 +45,9 @@ RESULT QryElementParam(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pst
 	STR szTemp[100], szMapObject[1000];
 	STR szDataType[20], szMapType[20], szObjOid[50], szMcpId[10];
     INT nDataLen, nTemp;
-	
+	bool checkBDResult = false;
+
+	long long curr_time = (long long)get_timestamp();
 	//打包结果
 	int n2GPack_Ret = 0;
 	//int nMapIdCount = 0;
@@ -41,9 +60,15 @@ RESULT QryElementParam(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pst
 		n2G_QB = Get2GSerial("Mobile2G", &nEleQryLogId);//GetDbSerial(&n2G_QB, "Mobile2G");
    	else
    		n2G_QB = GetCurrent2GSquenue();
+	long long end_time = (long long)get_timestamp();
+	if ((end_time-curr_time)>10*1000){
+		//over 10 second
+		PrintDebugLog(DBG_HERE, "process get 2g num cost time over[%lld - %lld - %d]\n", curr_time, end_time, end_time-curr_time);
+	}
    	
    	sprintf(pstruHead->QA, "%d", nEleQryLogId);//strcpy(pstruHead->QA, Get2GNumber("Qry", n2G_QB));
    	
+	curr_time = (long long)get_timestamp();
 	if(pstruHead->nProtocolType==PROTOCOL_2G)
 	{
 		bufclr(szMapObject);
@@ -107,7 +132,11 @@ RESULT QryElementParam(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pst
 		memset(&stuRepeInfo, 0, sizeof(stuRepeInfo));				
 		stuRepeInfo.DeviceId= pstruRepeater->nDeviceId;
 		stuRepeInfo.RepeaterId= pstruRepeater->nRepeaterId;
-		
+		end_time = (long long)get_timestamp();
+		if ((end_time-curr_time)>10*1000){
+			//over 10 second
+			PrintDebugLog(DBG_HERE, "process sep cost time over[%lld - %lld - %d]\n", curr_time, end_time, end_time-curr_time);
+		}
 		    	
 	    PrintDebugLog(DBG_HERE, "CommType=[%d]DeviceId=[%d]RepeaterId=[%u]n2G_QB=[%d]nObjCount=[%d]\n", 
 	        nCommType, stuRepeInfo.DeviceId, stuRepeInfo.RepeaterId,  n2G_QB, nObjCount);
@@ -272,6 +301,9 @@ RESULT QryElementParam(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pst
 				PrintDebugLog(DBG_HERE, "fileter das protocol type mapid[%08X - %s - %d]\n", pstruRepeater->nRepeaterId, szParam, pstruHead->nProtocolType);
 				continue;
 			}
+			if (checkBDTarget(pszSeperateStr[i])){
+				checkBDResult = true;
+			}
 			memset(&struObjList[nObjCount], 0, sizeof(OBJECTSTRU));	
 		    struObjList[nObjCount].MapID = strHexToInt(pszSeperateStr[i]);
 			//PrintDebugLog(DBG_HERE, "~~~~~ mapid equal, %s - %d\n", pszSeperateStr[i], struObjList[nObjCount].MapID);
@@ -300,7 +332,6 @@ RESULT QryElementParam(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pst
 		    else
 		    {
 				struObjList[nObjCount].OL = nDataLen;
-				
 			}
 			sprintf(szMapObject, "%s%s,", szMapObject, pszSeperateStr[i]);
 			nObjCount++;
@@ -323,6 +354,9 @@ RESULT QryElementParam(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pst
 		stuRepeInfo.DeviceId= pstruRepeater->nDeviceId;
 		stuRepeInfo.RepeaterId= pstruRepeater->nRepeaterId;
 		
+		if (checkBDResult){
+			pstruHead->nCommandCode = COMMAND_QUERY_TEMP;
+		}
 		    	
 	    PrintDebugLog(DBG_HERE, "CommType=[%d]DeviceId=[%d]RepeaterId=[%d]command=[%d]nObjCount=[%d]\n", 
 	        nCommType, stuRepeInfo.DeviceId, stuRepeInfo.RepeaterId,  pstruHead->nCommandCode, nObjCount);
@@ -331,6 +365,9 @@ RESULT QryElementParam(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pst
 		{
 		    case COMMAND_QUERY: 
 	             n2GPack_Ret= Encode_Das(nCommType, QUERYCOMMAND, n2G_QB, &stuRepeInfo, struObjList, nObjCount, &struPack);
+	             break;
+			case COMMAND_QUERY_TEMP: 
+	             n2GPack_Ret= Encode_Das(nCommType, FCTPRMQRY, n2G_QB, &stuRepeInfo, struObjList, nObjCount, &struPack);
 	             break;
 	        case COMMAND_FCTPRM_QRY: 
 	             n2GPack_Ret= Encode_Das(nCommType, FCTPRMQRY, n2G_QB, &stuRepeInfo, struObjList, nObjCount, &struPack);
@@ -461,7 +498,8 @@ RESULT SetElementParam(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pst
     PSTR pszSepMapIdStr[MAX_OBJECT_NUM];  /* 分割监控对象数组*/
     PSTR pszSepMapDataStr[MAX_OBJECT_NUM];  /* 分割监控对象内容数组*/
 	INT nObjCount=0,nDataCount, i, j, nSepCount;
-	
+	bool checkBDResult = false;
+
 	//SENDPACKAGE struSendPackage;		   /* 打包之前发送结构 */
 	OBJECTSTRU struObjList[MAX_OBJECT_NUM];
 	STR szMsgCont[MAX_BUFFER_LEN];
@@ -753,6 +791,10 @@ RESULT SetElementParam(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pst
 		for(i=0; i< nSepCount; i++)
 		{
 			if (strlen(pszSepMapIdStr[i]) != 8) continue;
+
+			if (checkBDTarget(pszSepMapIdStr[i])){
+				checkBDResult = true;
+			}
 		    
 			memset(&struObjList[nObjCount], 0, sizeof(OBJECTSTRU));
 			struObjList[nObjCount].MapID = strHexToInt(pszSepMapIdStr[i]);
@@ -792,6 +834,9 @@ RESULT SetElementParam(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pst
 			stuRepeInfo.DeviceId= pstruRepeater->nDeviceId;
 			stuRepeInfo.RepeaterId= pstruRepeater->nRepeaterId;
 			
+			if (checkBDResult){
+				pstruHead->nCommandCode = COMMAND_FCTPRM_SET;
+			}
 			    	
 		    PrintDebugLog(DBG_HERE, "DeviceId[%d]\nRepeaterId[%d]\nn2G_QB[%d]\nnObjCount[%d]\n", stuRepeInfo.DeviceId,
 		               stuRepeInfo.RepeaterId,  n2G_QB, nObjCount);
@@ -799,11 +844,14 @@ RESULT SetElementParam(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pst
 			{
 			    case COMMAND_SET: 
 		             n2GPack_Ret= Encode_Das(nCommType, SETCOMMAND, n2G_QB, &stuRepeInfo, struObjList, nObjCount, &struPack);
-		             break;
-		        case COMMAND_FCTPRM_SET: 
+					 break;
+				//case COMMAND_SET_TEMP:
+				//	 n2GPack_Ret= Encode_Das(nCommType, COMMAND_SET_TEMP, n2G_QB, &stuRepeInfo, struObjList, nObjCount, &struPack);
+				//	 break;
+		        case COMMAND_FCTPRM_SET:
 		             n2GPack_Ret= Encode_Das(nCommType, FCTPRMSET, n2G_QB, &stuRepeInfo, struObjList, nObjCount, &struPack);
 		             break;
-		        case COMMAND_PRJPRM_SET: 
+		        case COMMAND_PRJPRM_SET:
 		             n2GPack_Ret= Encode_Das(nCommType, PRJPRMSET, n2G_QB, &stuRepeInfo, struObjList, nObjCount, &struPack);
 		             break;
 		        case COMMAND_FACTORY_MODE:
@@ -1358,7 +1406,7 @@ RESULT QueryRfidList(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pstru
 	//打包结果
 	int n2GPack_Ret = 0;
 	REPEATERINFO stuRepeInfo;
-	int n2G_QB,nEleQryLogId;
+	int n2G_QB, nEleQryLogId;
 	BYTEARRAY struPack;
 	INT nObjCount =1;
 	STR szTemp[10];

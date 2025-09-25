@@ -1145,6 +1145,7 @@ RESULT ProcessAlarmTransfer()
 	STR szAlarmBeginDate[20], szAlarmEndDate[20];
 	INT nSiteLevelId;
 	STR szAlarmLogId[100];
+	STR szAlarmLocation[100+1];    //  告警定位
 	/*
 	 *	建立连接
 	 */
@@ -1190,7 +1191,7 @@ RESULT ProcessAlarmTransfer()
 								"n.ne_AlarmBegin, n.ne_AlarmEnd,"       
 								"n.ne_Name, n.ne_NeTelNum," 
 								"n.ne_sitelevelid, n.ne_systemnumbers," 
-								"n.ne_systemname, n.ne_protocoldevicetypeid, n.ne_CellId, "
+								"n.ne_systemname, n.ne_protocoldevicetypeid, n.ne_CellId, n.ne_installplace, "
 								"p.are_Code AS alg_areaCode, ne_Company.co_Name AS alg_CompanyName," 
 								"ne_Company.co_CompanyId AS alg_CompanyId, "
 								"alm_Alarm.alm_LevelId AS alg_LevelId, "
@@ -1269,6 +1270,10 @@ RESULT ProcessAlarmTransfer()
 				strcpy(szAreaCity, TrimAllSpace(GetTableFieldValue(&struCursor, "area_NameCity")));
 			}
 
+			if(strlen(GetTableFieldValue(&struCursor, "ne_installplace"))>0){ // fix by jingc 2025-06-26
+				strcpy(szAlarmLocation, TrimAllSpace(GetTableFieldValue(&struCursor, "ne_installplace")));
+			}
+
 			if (strcmp(szArea, "") == 0)
 			    strcpy(szArea, "杭州");
 			if (strstr("杭州,宁波,温州,湖州,嘉兴,绍兴,金华,衢州,台州,丽水,舟山", szArea) != NULL)
@@ -1332,7 +1337,7 @@ RESULT ProcessAlarmTransfer()
 		    	snprintf(szAlarmEndDate, sizeof(szAlarmEndDate), "%04d-%02d-%02d %s:00", 
 		    		struTmNow.tm_year + 1900, struTmNow.tm_mon + 1, struTmNow.tm_mday, szAlarmEnd);
 		    	
-		    	PrintDebugLog(DBG_HERE,"告警开始时间[%s],告警结束时间[%s],告警时间[%s]\n", szAlarmBeginDate, szAlarmEndDate, struYiYangData.szAlarmCreateTime);
+		    	PrintDebugLog(DBG_HERE,"告警开始时间[%s], 告警结束时间[%s], 告警时间[%s]\n", szAlarmBeginDate, szAlarmEndDate, struYiYangData.szAlarmCreateTime);
             	if ((int)MakeITimeFromLastTime(struYiYangData.szAlarmCreateTime) < (int)MakeITimeFromLastTime(szAlarmBeginDate) || 
             		(int)MakeITimeFromLastTime(struYiYangData.szAlarmCreateTime) > (int)MakeITimeFromLastTime(szAlarmEndDate))
             	{
@@ -1351,7 +1356,7 @@ RESULT ProcessAlarmTransfer()
                 "systemNo:%s\nsystemTitle:%s\nsiteId:%s\nsiteName:%s\n"
                 "cellId:%s\nlac:%s\nextendInfo:%s\nalarmStatus:0\n%s\n",
                 
-                "<ALARMSTART>", "广西电信直放站网络管理平台", "三维通信", struYiYangData.szAlarmId, struYiYangData.szOriAlarmId,
+                "<ALARMSTART>", szAlarmLocation, "三维通信", struYiYangData.szAlarmId, struYiYangData.szOriAlarmId,
                 struYiYangData.szAlarmTitle, struYiYangData.szAlarmCreateTime, struYiYangData.szNeType, struYiYangData.szNeName, struYiYangData.szNeVendor,
                 struYiYangData.szAlarmLevel, struYiYangData.szAlarmType, struYiYangData.szAlarmRedefLevel, struYiYangData.szAlarmRedefType, struYiYangData.szAlarmLocation,
                 struYiYangData.szAlarmDeviceId, struYiYangData.szAlarmTelnum, struYiYangData.szAlarmRegion, struYiYangData.szSystemLevel,
@@ -1391,8 +1396,7 @@ RESULT ProcessAlarmTransfer()
 								"n.ne_Name, n.ne_NeTelNum," 
 								"n.ne_sitelevelid, n.ne_systemnumbers," 
 								"n.ne_systemname,"
-								"n.ne_CellId, "
-								
+								"n.ne_CellId, n.ne_installplace, "
 								"p.are_Code AS alg_areaCode, ne_Company.co_Name AS alg_CompanyName," 
 								"ne_Company.co_CompanyId AS alg_CompanyId, "
 								"alm_Alarm.alm_LevelId AS alg_LevelId, "
@@ -1458,6 +1462,10 @@ RESULT ProcessAlarmTransfer()
 			memset(szAreaCity, 0, sizeof(szAreaCity));
 			if(strlen(GetTableFieldValue(&struCursor, "area_NameCity"))>0){
 				strcpy(szAreaCity, TrimAllSpace(GetTableFieldValue(&struCursor, "area_NameCity")));
+			}
+
+			if(strlen(GetTableFieldValue(&struCursor, "ne_installplace"))>0){ // fix by jingc 2025-06-26
+				strcpy(szAlarmLocation, TrimAllSpace(GetTableFieldValue(&struCursor, "ne_installplace")));
 			}
 
 			if (strcmp(szArea, "") == 0)
@@ -1548,8 +1556,8 @@ RESULT ProcessAlarmTransfer()
                 "alarmDeviceid:%s\nalarmTelnum:%s\nalarmRegion:%s\nsystemLevel:%s\n"
                 "systemNo:%s\nsystemTitle:%s\nsiteId:%s\nsiteName:%s\n"
                 "cellId:%s\nlac:%s\nextendInfo:%s\nalarmStatus:0\n%s\n",
-                
-                "<ALARMSTART>", "广西电信直放站网络管理平台", "三维通信", struYiYangData.szAlarmId, struYiYangData.szOriAlarmId,
+
+                "<ALARMSTART>", szAlarmLocation, "三维通信", struYiYangData.szAlarmId, struYiYangData.szOriAlarmId,
                 struYiYangData.szAlarmTitle, struYiYangData.szAlarmCreateTime, struYiYangData.szNeType, struYiYangData.szNeName, struYiYangData.szNeVendor,
                 struYiYangData.szAlarmLevel, struYiYangData.szAlarmType, struYiYangData.szAlarmRedefLevel, struYiYangData.szAlarmRedefType, struYiYangData.szAlarmLocation,
                 struYiYangData.szAlarmDeviceId, struYiYangData.szAlarmTelnum, struYiYangData.szAlarmRegion, struYiYangData.szSystemLevel,
@@ -1579,7 +1587,7 @@ RESULT ProcessAlarmTransfer()
 	    /*
 	     * 处理告警恢复交易
 	     */
-	    sprintf(szSql,"SELECT alg_AlarmLogId, to_char(alg_AlarmTime,'yyyy-mm-dd hh24:mi:ss') as alg_AlarmTime, to_char(alg_ClearTime,'yyyy-mm-dd hh24:mi:ss') as alg_ClearTime, alg_AlarmStatusId, alg_NeId, "
+	    sprintf(szSql,"SELECT alg_AlarmLogId, to_char(alg_AlarmTime,'yyyy-mm-dd hh24:mi:ss') as alg_AlarmTime, to_char(alg_ClearTime,'yyyy-mm-dd hh24:mi:ss') as alg_ClearTime, alg_AlarmStatusId, alg_NeId, ne_Element.ne_installplace, "
 							"p.are_Code AS alg_areaCode, "
 							"case p.are_Grade when 1 then p.are_Name when 2 then (select are_Name from pre_Area where pre_Area.are_Code = p.are_Code) end ne_Area  "
 							"FROM tf_alarmlog_trigger "
@@ -1618,9 +1626,13 @@ RESULT ProcessAlarmTransfer()
 			    strcat(szArea, "市");
 		    strcpy(struYiYangData.szAlarmRegion, "szArea");
 		    
+			if(strlen(GetTableFieldValue(&struCursor, "ne_installplace"))>0){ // fix by jingc 2025-07-01
+				strcpy(szAlarmLocation, TrimAllSpace(GetTableFieldValue(&struCursor, "ne_installplace")));
+			}
+
 		    bufclr(szSendBuffer);
 		    snprintf(szSendBuffer, sizeof(szSendBuffer), "\n%s\nsystemName:%s\nsystemVendor:%s\nalarmId:%s\nalarmStatus:%s\nstatusTime:%s\n%s\n",
-		        "<ALARMSTART>", "广西电信直放站网络管理平台", "三维通信", struYiYangData.szAlarmId, struYiYangData.szAlarmStatus, struYiYangData.szStatusTime, "<ALARMEND>");
+		        "<ALARMSTART>", szAlarmLocation, "三维通信", struYiYangData.szAlarmId, struYiYangData.szAlarmStatus, struYiYangData.szStatusTime, "<ALARMEND>");
 		    PrintTransLog(DBG_HERE,"发送告警清除报文[%s]\n",szSendBuffer);
 		    
 		    /*

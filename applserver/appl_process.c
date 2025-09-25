@@ -1370,6 +1370,7 @@ RESULT Process2GSms(PSTR pszUndecode,PSTR pszTelephone,PSTR pszNetCenterNum, int
 	//命令来处理
 	switch(struSendPackage.struHead.nCommandCode)
 	{
+		case COMMAND_QUERY_TEMP:
 		case COMMAND_QUERY:              //解析查询
 		case COMMAND_FCTPRM_QRY:
 		case COMMAND_PRJPRM_QRY:
