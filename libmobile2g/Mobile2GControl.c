@@ -152,7 +152,7 @@ int Encode_Das(int CommType, int CommandType, int NetFlag, REPEATERINFO*  stuRep
 		nRet=EncodeDasAppLayer(SETCOMMAND,0xFF,ObjList,objSize,pPack);
 	}
 	else if(CommandType == 0xB2){
-		nRet=EncodeDasAppLayer(0xB2,0xFF,ObjList,objSize,pPack);
+		nRet = EncodeDasAppLayer(0xB2, 0xFF, ObjList, objSize, pPack);
 	}
 	//增加工厂模式2008.1.9 begin
 	else if(CommandType==FCTPRMQRY)//工厂参数查询

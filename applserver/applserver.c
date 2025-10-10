@@ -245,8 +245,348 @@ RESULT ProcessQuerySetTrans(PSTR pszCaReqBuffer)
         	PrintDebugLog(DBG_HERE, "监控对象[%s]\n", szQryEleParam);
 	        nObjCount = SeperateString(szQryEleParam, '|', pszSepParamStr, MAX_SEPERATE_NUM);
 	
+			PrintDebugLog(DBG_HERE, "nObjCount=%d, szQryEleParam=%s\n", nObjCount, szQryEleParam);
 	        for(i=0; i< nObjCount; i++)
 		    {
+				PrintDebugLog(DBG_HERE, "pszSepParamStr[%d]=%s\n", i, pszSepParamStr[i]);
+		    	InsertInXmlExt(pstruXml,"<omc>/<监控对象>",  pszSepParamStr[i], MODE_AUTOGROW|MODE_UNIQUENAME);
+	        	//生成GPRS方式
+	        	QryElementParam(M2G_TCPIP, &struHead, &struRepeater, pstruXml);
+	        	//生成设置命令保存
+	        	SaveToGprsQueue(pstruXml);
+	        	SaveEleQryLog(pstruXml);
+        	}
+        	
+        }
+        else //通信方式：短信
+        {
+        	if(struHead.nProtocolType == PROTOCOL_2G ||
+        	   struHead.nProtocolType == PROTOCOL_DAS ||
+        	   struHead.nProtocolType == PROTOCOL_JINXIN_DAS)
+        	{	
+	        	strcpy(szQryEleParam, DemandStrInXmlExt(pstruXml,"<omc>/<监控对象>"));
+	        	ResolveQryParamArray(szQryEleParam);
+	 	    	PrintDebugLog(DBG_HERE, "监控对象[%s]\n", szQryEleParam);
+	        	nObjCount = SeperateString(szQryEleParam, '|', pszSepParamStr, MAX_SEPERATE_NUM);
+	
+	        	for(i=0; i< nObjCount; i++)
+		    	{
+		    	    //监控对象用空格分割
+	 	    	    InsertInXmlExt(pstruXml,"<omc>/<定时发送时间>", MakeSTimeFromITime((INT)time(NULL)+i*10), MODE_AUTOGROW|MODE_UNIQUENAME);
+		    	    InsertInXmlExt(pstruXml,"<omc>/<监控对象>",  pszSepParamStr[i], MODE_AUTOGROW|MODE_UNIQUENAME);
+					QryElementParam(M2G_SMS, &struHead, &struRepeater, pstruXml);
+					SaveToMsgQueue(pstruXml);
+					SaveEleQryLog(pstruXml);
+		    	}
+		    }
+		    else if (struHead.nProtocolType == PROTOCOL_GSM || 
+		    		struHead.nProtocolType == PROTOCOL_CDMA ||
+		    		struHead.nProtocolType == PROTOCOL_HEIBEI ||
+		    		struHead.nProtocolType == PROTOCOL_HEIBEI2 ||
+		    		struHead.nProtocolType == PROTOCOL_XC_CP ||
+		    		struHead.nProtocolType == PROTOCOL_SUNWAVE ||
+		    		struHead.nProtocolType == PROTOCOL_WLK)
+		    {
+	 	    	InsertInXmlExt(pstruXml,"<omc>/<定时发送时间>", MakeSTimeFromITime((INT)time(NULL)), MODE_AUTOGROW|MODE_UNIQUENAME);
+			    QryElementParam(M2G_SMS, &struHead, &struRepeater, pstruXml);
+				SaveToMsgQueue(pstruXml);
+				SaveEleQryLog(pstruXml);
+		    }
+		    	
+		}
+
+	}
+	else if ((strcmp(szType,"12") == 0) || (strcmp(szType ,"22") == 0)) //12 2g设置  22 非2g设置
+	{
+		if (struRepeater.nCommType == 7)//snmp协议
+		{
+			struHead.nProtocolType = PROTOCOL_SNMP;
+			SetElementParam(M2G_SNMP_TYPE, &struHead, &struRepeater, pstruXml);
+        	//生成设置命令保存
+        	SaveToSnmpQueue(pstruXml);
+        	SaveEleSetLog(pstruXml);
+		}
+        //else if (strcmp(szType, "22") ==0)
+        else if (struRepeater.nCommType == 5 || struRepeater.nCommType == 6) //通信方式：UDP, GPRS
+        {
+        	SetElementParam(M2G_TCPIP, &struHead, &struRepeater, pstruXml);
+        	//生成设置命令保存
+        	SaveToGprsQueue(pstruXml);
+        	SaveEleSetLog(pstruXml);
+        }
+        else
+        {
+        	if(struHead.nProtocolType == PROTOCOL_2G ||
+        	   struHead.nProtocolType == PROTOCOL_DAS ||
+        	   struHead.nProtocolType == PROTOCOL_JINXIN_DAS)
+        	{	
+	        	strcpy(szSetEleParam, DemandStrInXmlExt(pstruXml,"<omc>/<监控对象>"));
+				strcpy(szSetEleValue, DemandStrInXmlExt(pstruXml,"<omc>/<监控对象内容>"));
+			
+			
+				ResolveSetParamArray(szSetEleParam, szSetEleValue);
+	        	nObjCount = SeperateString(szSetEleParam, '|', pszSepParamStr, MAX_SEPERATE_NUM);
+	        	nObjCount = SeperateString(szSetEleValue, '|', pszSepValueStr, MAX_SEPERATE_NUM);
+	        	for(i=0; i< nObjCount; i++)
+		    	{
+		    	    //监控对象用空格分割
+	 	    	    InsertInXmlExt(pstruXml,"<omc>/<定时发送时间>", MakeSTimeFromITime((INT)time(NULL)+i*10), MODE_AUTOGROW|MODE_UNIQUENAME);
+		    	    InsertInXmlExt(pstruXml,"<omc>/<监控对象>",  pszSepParamStr[i], MODE_AUTOGROW|MODE_UNIQUENAME);
+		    	    InsertInXmlExt(pstruXml,"<omc>/<监控对象内容>",  pszSepValueStr[i], MODE_AUTOGROW|MODE_UNIQUENAME);
+		    	             
+					SetElementParam(M2G_SMS, &struHead, &struRepeater, pstruXml);
+					SaveToMsgQueue(pstruXml);
+					SaveEleSetLog(pstruXml);
+				}
+			}
+		    else if (struHead.nProtocolType == PROTOCOL_GSM || 
+		    		struHead.nProtocolType == PROTOCOL_CDMA ||
+		    		struHead.nProtocolType == PROTOCOL_HEIBEI ||
+		    		struHead.nProtocolType == PROTOCOL_HEIBEI2 ||
+		    		struHead.nProtocolType == PROTOCOL_XC_CP ||
+		    		struHead.nProtocolType == PROTOCOL_SUNWAVE ||
+		    		struHead.nProtocolType == PROTOCOL_WLK)
+			{
+				InsertInXmlExt(pstruXml,"<omc>/<定时发送时间>", MakeSTimeFromITime((INT)time(NULL)), MODE_AUTOGROW|MODE_UNIQUENAME);
+				SetElementParam(M2G_SMS, &struHead, &struRepeater, pstruXml);
+				SaveToMsgQueue(pstruXml);
+				SaveEleSetLog(pstruXml);
+			}	
+		}
+
+	}
+	else if (strcmp(szType,"31") == 0)//31 监控列表
+	{ 
+		strcpy(szTemp, DemandStrInXmlExt(pstruXml,"<omc>/<通信方式>"));
+        if (strcmp(szTemp, "6") == 0 || strcmp(szTemp, "5") == 0)
+        {
+			QueryMapList(M2G_TCPIP, &struHead, &struRepeater, pstruXml);
+			SaveToGprsQueue(pstruXml);
+			SaveEleQryLog(pstruXml);
+		}
+        else
+        {
+			QueryMapList(M2G_SMS, &struHead, &struRepeater, pstruXml);
+			SaveToMsgQueue(pstruXml);
+			SaveEleQryLog(pstruXml);
+		}
+		
+	}
+	else if (strcmp(szType,"41") == 0)//41 pesq下行拨测
+	{
+		InsertMosTask(pstruXml);
+		DeleteXml(pstruXml);
+		return NORMAL;
+	}
+	else if (strcmp(szType,"51") == 0)//51 das
+	{
+		if (struRepeater.nCommType == 7)//通信方式：snmp协议
+		{
+			struHead.nProtocolType = PROTOCOL_SNMP;
+			QueryDasList(M2G_SNMP_TYPE, &struHead, &struRepeater, pstruXml);
+        	//生成设置命令保存
+        	SaveToSnmpQueue(pstruXml);
+        	SaveEleQryLog(pstruXml);
+		}
+		else
+		{
+			//PrintDebugLog(DBG_HERE,"here\n");
+			QueryDasList(M2G_TCPIP, &struHead, &struRepeater, pstruXml);
+			SaveToGprsQueue(pstruXml);
+			SaveEleQryLog(pstruXml);
+		}
+	}
+	else if (strcmp(szType,"52") == 0)//52 rfid
+	{
+		QueryRfidList(M2G_TCPIP, &struHead, &struRepeater, pstruXml);
+		SaveToGprsQueue(pstruXml);
+		SaveEleQryLog(pstruXml);
+	}
+	else if (strcmp(szType,"61") == 0)//61 批采
+	{ 
+		strcpy(szTemp, DemandStrInXmlExt(pstruXml,"<omc>/<通信方式>"));
+        if (strcmp(szTemp, "6") == 0)
+        {
+        	QryElementParam(M2G_TCPIP, &struHead, &struRepeater, pstruXml);
+        	SaveToGprsQueue(pstruXml);
+        	SaveEleQryLog(pstruXml);
+		}
+        else
+        {
+			QryElementParam(M2G_SMS, &struHead, &struRepeater, pstruXml);
+			SaveToMsgQueue(pstruXml);
+			SaveEleQryLog(pstruXml);
+		}
+		
+		InitBatPick(pstruXml);
+		
+		SaveBatPickLog(pstruXml);
+		
+	}
+	else if (strcmp(szType,"71") == 0)//71 时隙
+	{ 
+		strcpy(szTemp, DemandStrInXmlExt(pstruXml,"<omc>/<通信方式>"));
+        if (strcmp(szTemp, "6") == 0)
+        {
+        	QryElementParam(M2G_TCPIP, &struHead, &struRepeater, pstruXml);
+        	SaveToGprsQueue(pstruXml);
+        	SaveEleQryLog(pstruXml);
+		}
+        else
+        {
+			QryElementParam(M2G_SMS, &struHead, &struRepeater, pstruXml);
+			SaveToMsgQueue(pstruXml);
+			SaveEleQryLog(pstruXml);
+		}
+		
+		CheckShiXi(pstruXml);
+		
+		SaveShiXiLog(pstruXml);
+		
+	}
+	
+	// 2009.1.7 特殊命令处理,字段为流水号而来
+	if (nSpecialType > 0)
+	{
+	    //   1-远程升级, 2-查询cqt互拨结果命令，3-立即pesq上行拨测，4-立即pesq下行拨测，
+		//   5-gprs立即测试命令，6-查询gprs测试结果命令
+		if ((strcmp(szType,"12") == 0) || (strcmp(szType ,"22") == 0))
+		    InsertInXmlExt(pstruXml,"<omc>/<命令类型>", "2", MODE_AUTOGROW|MODE_UNIQUENAME);
+		else if (nSpecialType == 4)
+		    InsertInXmlExt(pstruXml,"<omc>/<命令类型>", "3", MODE_AUTOGROW|MODE_UNIQUENAME);
+		else
+		    InsertInXmlExt(pstruXml,"<omc>/<命令类型>", "1", MODE_AUTOGROW|MODE_UNIQUENAME);
+		
+		sprintf(szTemp, "%d", nSpecialType);
+		InsertInXmlExt(pstruXml,"<omc>/<命令号>", szTemp, MODE_AUTOGROW|MODE_UNIQUENAME);
+				
+	    //InsertSpecialCommandLog(pstruXml);
+	    //更新远程升级
+	    if (nSpecialType == 1)
+	        RemortUpdateDbOperate1(pstruXml);
+	}
+	
+	DeleteXml(pstruXml);
+	return NORMAL;
+    
+}
+
+
+RESULT ProcessQuerySetTrans_Temp(PSTR pszCaReqBuffer)
+{
+	XMLSTRU struXml;
+	PXMLSTRU pstruXml=&struXml;
+	REPEATER_INFO struRepeater;
+	COMMANDHEAD struHead;
+	STR szBuffer[MAX_BUFFER_LEN];
+	int nNeId, nSpecialType;
+	STR szType[2+1];   			/*命令类型  */
+	STR szTemp[10];
+	int nObjCount, i;
+	STR szQryEleParam[MAX_BUFFER_LEN];
+	STR szSetEleParam[MAX_BUFFER_LEN];
+	STR szSetEleValue[MAX_BUFFER_LEN];
+	PSTR pszSepParamStr[MAX_OBJECT_NUM];  /* 分割字符数组*/
+	PSTR pszSepValueStr[MAX_OBJECT_NUM];  /* 分割字符数组*/
+	
+	/*
+ 	 * 分析报文，将定长报文转换为xml
+     */
+    memset(pstruXml,0,sizeof(XMLSTRU));
+	CreateXml(pstruXml,FALSE,OMC_ROOT_PATH,NULL);
+
+	if(UnpackDivStr(pszCaReqBuffer, pstruXml, struDivCfg)!=NORMAL)
+	{
+		PrintErrorLog(DBG_HERE,"解析BS发送报文失败\n");
+		return EXCEPTION;
+	}
+    memset(szBuffer, 0, sizeof(szBuffer));
+	ExportXml(pstruXml, szBuffer, sizeof(szBuffer));
+	PrintDebugLog(DBG_HERE,"变长转换报文[%s][%d]\n",szBuffer, strlen(szBuffer));
+    
+    memset(&struHead, 0, sizeof(COMMANDHEAD));
+    memset(&struRepeater, 0, sizeof(REPEATER_INFO));
+	nNeId = atoi(DemandStrInXmlExt(pstruXml,"<omc>/<网元编号>"));  
+	struRepeater.nCommType = atoi(DemandStrInXmlExt(pstruXml,"<omc>/<通信方式>"));  
+	struRepeater.nRepeaterId = atol(DemandStrInXmlExt(pstruXml,"<omc>/<站点编号>")); 
+	struRepeater.nDeviceId = atoi(DemandStrInXmlExt(pstruXml,"<omc>/<设备编号>")); 
+	strcpy(struRepeater.szTelephoneNum, DemandStrInXmlExt(pstruXml,"<omc>/<站点电话>"));
+	
+	strcpy(struRepeater.szIP, DemandStrInXmlExt(pstruXml,"<omc>/<站点IP>"));
+	if (strlen(DemandStrInXmlExt(pstruXml,"<omc>/<端口号>")) == 0)
+		struRepeater.nPort = 0;
+	else
+		struRepeater.nPort = atoi(DemandStrInXmlExt(pstruXml,"<omc>/<端口号>")); 
+		
+	struRepeater.nProtocolDeviceType = atoi(DemandStrInXmlExt(pstruXml,"<omc>/<设备类型>"));
+	strcpy(struRepeater.szSpecialCode, DemandStrInXmlExt(pstruXml,"<omc>/<其它标识>"));
+	strcpy(struRepeater.szReserve, DemandStrInXmlExt(pstruXml,"<omc>/<设备型号>"));
+	strcpy(struRepeater.szNetCenter, DemandStrInXmlExt(pstruXml,"<omc>/<服务号码>"));
+	
+	if (getAgentState(struRepeater.szNetCenter) == BOOLTRUE)
+		InsertInXmlExt(pstruXml,"<omc>/<服务状态>", "0", MODE_AUTOGROW|MODE_UNIQUENAME);
+	else
+		InsertInXmlExt(pstruXml,"<omc>/<服务状态>", "1", MODE_AUTOGROW|MODE_UNIQUENAME);
+	//判断是否2G， 非2G， Snmp协议
+	struHead.nProtocolType = atoi(DemandStrInXmlExt(pstruXml,"<omc>/<协议类型>"));
+	struHead.nCommandCode = atoi(DemandStrInXmlExt(pstruXml,"<omc>/<命令号>"));
+	// 处理特殊类型  2009.1.7
+    //  178工厂参数查询 179工厂参数设置 180工程参数查询 181工程参数设置 176进入工厂模式命令
+	nSpecialType = atoi(DemandStrInXmlExt(pstruXml,"<omc>/<流水号>"));
+	if (nSpecialType > 170 && nSpecialType < 1000)
+	{
+	    struHead.nCommandCode = nSpecialType;
+
+		sprintf(szTemp, "%d", nSpecialType);
+		InsertInXmlExt(pstruXml,"<omc>/<命令号>", szTemp, MODE_AUTOGROW|MODE_UNIQUENAME);
+	    nSpecialType = 0;
+	}
+	strcpy(szType, DemandStrInXmlExt(pstruXml,"<omc>/<类型>"));
+	
+	strcpy(szQryEleParam, DemandStrInXmlExt(pstruXml,"<omc>/<监控对象>"));
+	if (strlen(szQryEleParam) == 0)
+	{
+		PrintDebugLog(DBG_HERE,"查询[%u][%s]监控对象为空\n", struRepeater.nRepeaterId, struRepeater.szTelephoneNum);
+		DeleteXml(pstruXml);
+		return EXCEPTION;
+	}
+	//批采
+	if (strcmp(szQryEleParam, "0606") == 0 || strcmp(szQryEleParam, "00000606") == 0)
+	{	
+		strcpy(szType, "61");
+	}
+	//时隙
+	strcpy(szQryEleParam, DemandStrInXmlExt(pstruXml,"<omc>/<监控对象>"));
+	if (strcmp(szQryEleParam, "0875") == 0 || nSpecialType == 71)
+	{	
+		strcpy(szType, "71");
+	}
+	
+    //重新设置站点等级为快:OMC_QUICK_MSGLEVEL
+	InsertInXmlExt(pstruXml,"<omc>/<站点等级>", OMC_QUICK_MSGLEVEL, MODE_AUTOGROW|MODE_UNIQUENAME);
+		
+	if ((strcmp(szType,"11") == 0) || (strcmp(szType ,"21") == 0))//查询 11 2g 21 非2g
+	{
+	    PrintDebugLog(DBG_HERE,"进入查询流程\n");
+		if (struRepeater.nCommType == 7)//通信方式：snmp协议
+		{
+			struHead.nProtocolType = PROTOCOL_SNMP;
+			QryElementParam(M2G_SNMP_TYPE, &struHead, &struRepeater, pstruXml);
+        	//生成设置命令保存
+        	SaveToSnmpQueue(pstruXml);
+        	SaveEleQryLog(pstruXml);
+		}
+        //else if (strcmp(szType, "21") ==0) //通信方式：UDP, GPRS
+        else if (struRepeater.nCommType == 5 || struRepeater.nCommType == 6) //通信方式：UDP, GPRS
+        {
+        	ResolveQryParamArrayGprs(szQryEleParam);
+        	PrintDebugLog(DBG_HERE, "监控对象[%s]\n", szQryEleParam);
+	        nObjCount = SeperateString(szQryEleParam, '|', pszSepParamStr, MAX_SEPERATE_NUM);
+	
+			PrintDebugLog(DBG_HERE, "nObjCount=%d, szQryEleParam=%s\n", nObjCount, szQryEleParam);
+	        for(i=0; i< nObjCount; i++)
+		    {
+				PrintDebugLog(DBG_HERE, "pszSepParamStr[%d]=%s\n", i, pszSepParamStr[i]);
 		    	InsertInXmlExt(pstruXml,"<omc>/<监控对象>",  pszSepParamStr[i], MODE_AUTOGROW|MODE_UNIQUENAME);
 	        	//生成GPRS方式
 	        	QryElementParam(M2G_TCPIP, &struHead, &struRepeater, pstruXml);

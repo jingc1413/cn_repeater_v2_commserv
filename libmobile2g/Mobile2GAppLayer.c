@@ -204,6 +204,7 @@ int DecodeAppLayer(BYTEARRAY *pPack ,DECODE_OUT* pDecodeOut,OBJECTSTRU* ObjList)
     return nRet;
 }
 
+// nRet = EncodeDasAppLayer(0xB2, 0xE3, ObjList, objSize, pPack);
 int EncodeAppLayer(int CommandType, int AnswerType, OBJECTSTRU *ObjList, int ObjSize, BYTEARRAY *pPack)
 {
     int i, j;

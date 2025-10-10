@@ -292,13 +292,27 @@ RESULT QryElementParam(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pst
 	{
 		bufclr(szMapObject);
 		strcpy(szParam, DemandStrInXmlExt(pstruXml, "<omc>/<监控对象>"));
+
+		{
+			// 7E 03010100011401864A8003B2FF 06 FF0A0000 E3 07 BD000000 0000 07 BD040000 0000 73A3 7E
+			// 7E 03010100011401774A8003B2FF             07BD000000000007BD0400000000 D690 7E
+			// 临时添加 0xb2 工厂参数添加 0AFF
+			if (checkBDTarget(szParam)){
+				char temp[1800]={0};
+				snprintf(temp, sizeof(temp), "00000AFF,%s", szParam);
+				strcpy(szParam, temp);
+			}
+		}
+
+		PrintDebugLog(DBG_HERE, "szParam monitor object: %s\n", szParam);
 		nSepCount = SeperateString(szParam, ',',pszSeperateStr, MAX_SEPERATE_NUM);
-	
+		PrintDebugLog(DBG_HERE, "nSepCount=%d, szParam=%s\n", nSepCount, szParam);
 		//将放入分割参数
 		for(i=0; i< nSepCount; i++)
 		{
+			PrintDebugLog(DBG_HERE, "pszSeperateStr[%d]=%s\n", i, pszSeperateStr[i]);
 			if (strlen(pszSeperateStr[i]) != 8) {
-				PrintDebugLog(DBG_HERE, "fileter das protocol type mapid[%08X - %s - %d]\n", pstruRepeater->nRepeaterId, szParam, pstruHead->nProtocolType);
+				PrintDebugLog(DBG_HERE, "fileter das protocol type mapid[%08X - %s - %s - %d]\n", pstruRepeater->nRepeaterId, pszSeperateStr[i], szParam, pstruHead->nProtocolType);
 				continue;
 			}
 			if (checkBDTarget(pszSeperateStr[i])){
@@ -328,6 +342,9 @@ RESULT QryElementParam(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pst
 				struObjList[nObjCount].OC[4] = LOBYTE(HIWORD(nTemp));
 				struObjList[nObjCount].OC[5] = HIBYTE(HIWORD(nTemp));
 				struObjList[nObjCount].OL = 6;
+			}else if (struObjList[nObjCount].MapID == 0x00000AFF){
+				struObjList[nObjCount].OC[0] = 0xE3;
+				struObjList[0].OL = 1;
 			}
 		    else
 		    {
@@ -367,7 +384,8 @@ RESULT QryElementParam(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pst
 	             n2GPack_Ret= Encode_Das(nCommType, QUERYCOMMAND, n2G_QB, &stuRepeInfo, struObjList, nObjCount, &struPack);
 	             break;
 			case COMMAND_QUERY_TEMP: 
-	             n2GPack_Ret= Encode_Das(nCommType, FCTPRMQRY, n2G_QB, &stuRepeInfo, struObjList, nObjCount, &struPack);
+	             n2GPack_Ret= Encode_Das(nCommType, COMMAND_QUERY_TEMP, n2G_QB, &stuRepeInfo, struObjList, nObjCount, &struPack);
+				  PrintDebugLog(DBG_HERE, "encode das, n2GPack_Ret=%d, struPack.pPack=%s\n", n2GPack_Ret, struPack.pPack);
 	             break;
 	        case COMMAND_FCTPRM_QRY: 
 	             n2GPack_Ret= Encode_Das(nCommType, FCTPRMQRY, n2G_QB, &stuRepeInfo, struObjList, nObjCount, &struPack);
@@ -517,6 +535,18 @@ RESULT SetElementParam(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pst
 	
 	strcpy(szMapId, DemandStrInXmlExt(pstruXml, "<omc>/<监控对象>"));
 	strcpy(szMapData, DemandStrInXmlExt(pstruXml, "<omc>/<监控对象内容>"));
+
+	// <监控对象>000000BD,000004BD</监控对象>
+	// <监控对象内容>53.4,53.2</监控对象内容>
+	if (checkBDTarget(szMapId)){
+		char temp[1800]={0};
+		snprintf(temp, sizeof(temp), "00000AFF,%s", szMapId);
+		strcpy(szMapId, temp);
+
+		snprintf(temp, sizeof(temp), "E3,%s", szMapData);
+		strcpy(szMapData, temp);
+	}
+
 	nSepCount = SeperateString(szMapId, ',', pszSepMapIdStr, MAX_SEPERATE_NUM);
 	nDataCount = SeperateString(szMapData, ',', pszSepMapDataStr, MAX_SEPERATE_NUM);
 	//特殊指令处理流水号
@@ -798,8 +828,11 @@ RESULT SetElementParam(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pst
 		    
 			memset(&struObjList[nObjCount], 0, sizeof(OBJECTSTRU));
 			struObjList[nObjCount].MapID = strHexToInt(pszSepMapIdStr[i]);
-			nDataLen = EncodeMapDataFromMapId(pszSepMapIdStr[i], pszSepMapDataStr[i], struObjList[nObjCount].OC);
-			struObjList[nObjCount].OL = nDataLen;
+
+			if (struObjList[nObjCount].MapID != 0x00000AFF){
+				nDataLen = EncodeMapDataFromMapId(pszSepMapIdStr[i], pszSepMapDataStr[i], struObjList[nObjCount].OC);
+				struObjList[nObjCount].OL = nDataLen;
+			}
 			
 			//判断时隙处理
 			GetMapIdFromCache2(pszSepMapIdStr[i], szDataType, szMapType, &nDataLen);
@@ -822,6 +855,12 @@ RESULT SetElementParam(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pst
 				struObjList[nObjCount].OC[5] = 0;
 				struObjList[nObjCount].OL = 6;
 			}
+			if(struObjList[nObjCount].MapID == 0x00000AFF){
+				struObjList[nObjCount].OC[0] = strHexToInt(pszSepMapDataStr[i]);
+				//struObjList[nObjCount].OC[0] = 0xE3;
+				struObjList[0].OL = 1;
+			}
+		
 			nObjCount++;
 		}
 		memset(szMsgCont, 0, sizeof(szMsgCont));
@@ -2952,11 +2991,15 @@ RESULT DecodeQueryMapList(SENDPACKAGE *pstruSendPackage)
 	GetSysParameter("par_SectionName = 'Province' and par_KeyName = 'ProvinceAreCode'", szProvinceId);
 	if (ExistNeId(pstruSendPackage->struRepeater.nRepeaterId, pstruSendPackage->struRepeater.nDeviceId) == BOOLTRUE)
 	{
+		if (pstruSendPackage->struRepeater.nDeviceId > 0){
+			strncat(szMapId0009List, ",000000BD,000004BD", sizeof(szMapId0009List) - strlen(szMapId0009List) - 1);
+		}
 	    //更新上报的监控量列表
 	    bResult = UpdateEleObjList(pstruSendPackage, szMapId0009List, szProvinceId, 0);
 	}
 	else
 	{
+		//strncat(szMapId0009List, ",000000BD,000004BD", sizeof(szMapId0009List) - strlen(szMapId0009List) - 1);
 	    //是开站上报的监控量列表
 	    bResult = UpdateEleObjList(pstruSendPackage, szMapId0009List, szProvinceId, 1);
 	}
@@ -3440,6 +3483,11 @@ RESULT UpdateDasEleObjList(SENDPACKAGE *pstruSendPackage,  PSTR pszObjectList, P
     }
     
     memset(szSql, 0, sizeof(szSql));
+	{
+		if (pstruSendPackage->struRepeater.nDeviceId > 0){
+			strncat(szNeActiveRow, ",000000BD,000004BD", sizeof(szNeActiveRow) - strlen(szNeActiveRow) - 1);
+		}
+	}
     if (nUpdateWay == 1)//新增
     {
          STR szNeName[100];
@@ -3598,7 +3646,7 @@ RESULT UpdateEleObjList(SENDPACKAGE *pstruSendPackage,  PSTR pszObjectList, PSTR
     bufclr(szNeAlarmEnabled);
     bufclr(szNeAlarmObjList);
     bufclr(szObjectList);
-    
+
     //strcpy(szObjectList, pszObjectList);
 	nSeperateNum = SeperateString(pszObjectList,  ',', pszObjectIdStr, MAX_SEPERATE_NUM);
     for(i=0; i< nSeperateNum; i++)
