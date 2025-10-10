@@ -749,7 +749,6 @@ RESULT ProcessSmsStatusReport(PSTR pszCaReqBuffer)
 	return NORMAL;
 }
 
-
 /* 
  * 轮训任务 
  */
@@ -1163,6 +1162,7 @@ RESULT ProcessTurnTask(PSTR pszCaReqBuffer)
 	             nObjCount = SeperateString(szQryEleParam, '|', pszSepParamStr, MAX_SEPERATE_NUM);
 	             for(i=0; i< nObjCount; i++)
 		         {
+		             
 		             //监控对象用空格分割
 	 	             //strcpy(szQryEleParam, "0301 0304 0704"); // for test
 	 	             if (strlen(szUploadTime) == 14)
@@ -1174,22 +1174,14 @@ RESULT ProcessTurnTask(PSTR pszCaReqBuffer)
 	            	 
 	            	 if (struRepeater.nCommType == 5 || struRepeater.nCommType == 6)
 	            	 {
-						long long curr_time = (long long)get_timestamp();
 	            	 	if (QryElementParam(M2G_TCPIP, &struHead, &struRepeater, pstruXml) != NORMAL){
 							PrintDebugLog(DBG_HERE, "query element param failed[%d]\n", struRepeater.nCommType);
 							continue;
 						}
 	            	 	SaveToGprsQueue(pstruXml);
-						long long end_time = (long long)get_timestamp();
-						if ((end_time-curr_time)>10*1000){
-							//over 10 second
-							PrintDebugLog(DBG_HERE, "process SaveToGprsQueue cost time over[%lld - %lld - %lld]\n", curr_time, end_time, end_time-curr_time);
-					 	}
-
 	            	 }
 	            	 else
 	            	 {
-						long long curr_time = (long long)get_timestamp();
 			         	if(QryElementParam(M2G_SMS, &struHead, &struRepeater, pstruXml) != NORMAL){
 			        		PrintDebugLog(DBG_HERE, "query element param failed[%d]\n", struRepeater.nCommType);
 							continue;
@@ -1197,20 +1189,8 @@ RESULT ProcessTurnTask(PSTR pszCaReqBuffer)
 			         	//动态分配特服务号
 			         	//DistServerTelNum(pstruXml);
 			         	SaveToMsgQueue_Tmp(pstruXml);
-						long long end_time = (long long)get_timestamp();
-						if ((end_time-curr_time)>10*1000){
-							//over 10 second
-							PrintDebugLog(DBG_HERE, "process SaveToMsgQueue_Tmp cost time over[%lld - %lld - %d]\n", curr_time, end_time, end_time-curr_time);
-					 	}
 			         }
-					 long long curr_time = (long long)get_timestamp();
-					 SaveEleQryLog(pstruXml);
-					 long long end_time = (long long)get_timestamp();
-					 if ((end_time-curr_time)>10*1000){
-						//over 10 second
-						PrintDebugLog(DBG_HERE, "process save eleqrylog cost time over[%lld - %lld - %d]\n", curr_time, end_time, end_time-curr_time);
-					 }
-					 PrintDebugLog(DBG_HERE, "process save eleqrylog cost time end[%lld]\n", end_time);
+			         SaveEleQryLog(pstruXml);
 			         nTxPackCount++;
 			         //if (nTaskId != 11932 && i>= 1) break;
 			         	
