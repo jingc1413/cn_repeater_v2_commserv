@@ -203,9 +203,9 @@ typedef enum _PROTOCOL_2G_COMMAND //2G命令编码
 	COMMAND_QUERY_MAPLIST = 9,    //查询监控量列表
 	COMMAND_FCTPRM_QRY = 0x11,     //原工厂参数查询 178  改为 切换监控软件版本 0x11 2014/1/8 modify
 	COMMAND_FACTORY_MODE = 176,   //进入工厂模式
-	COMMAND_FCTPRM_SET = 179,     //工厂参数设置   add  at 2008-12-15 for factory mode
-    COMMAND_PRJPRM_QRY = 180,     //工程参数查询   add  at 2008-12-15 for factory mode
-	COMMAND_PRJPRM_SET = 181      //工程参数设置   add  at 2008-12-15 for factory mode
+	COMMAND_FCTPRM_SET = 179,     //工厂参数设置   add  at 2008-12-15 for factory mode  // B3
+    COMMAND_PRJPRM_QRY = 180,     //工程参数查询   add  at 2008-12-15 for factory mode  // B4
+	COMMAND_PRJPRM_SET = 181      //工程参数设置   add  at 2008-12-15 for factory mode  // B5
 }PROTOCOL_2G_COMMAND;
 
 typedef enum _2G_UP_TYPE //2G上报类型
