@@ -15,19 +15,13 @@ static int n_gNeId;
 static int n_gTaskId;
 static int n_gTaskLogId;
 
-long long get_timestamp(void) {
-    struct timeval tv;
-    if (gettimeofday(&tv, NULL) == -1) {
-        perror("gettimeofday");
-        return -1;  // or handle error as appropriate
-    }
-    long long tmp = (long long)tv.tv_sec * 1000LL + (long long)tv.tv_usec / 1000;
-    return tmp;
-}
-
 bool checkBDTarget(const char *str) {
     return (strstr(str, "000000BD") != NULL) || 
            (strstr(str, "000004BD") != NULL);
+}
+
+bool checkPRJPRMTarget(const char *str){
+	return (strstr(str, "00000198") != NULL);
 }
 
 
@@ -46,8 +40,8 @@ RESULT QryElementParam(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pst
 	STR szDataType[20], szMapType[20], szObjOid[50], szMcpId[10];
     INT nDataLen, nTemp;
 	bool checkBDResult = false;
+	bool checkPRJPRM = false;
 
-	long long curr_time = (long long)get_timestamp();
 	//打包结果
 	int n2GPack_Ret = 0;
 	//int nMapIdCount = 0;
@@ -60,15 +54,8 @@ RESULT QryElementParam(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pst
 		n2G_QB = Get2GSerial("Mobile2G", &nEleQryLogId);//GetDbSerial(&n2G_QB, "Mobile2G");
    	else
    		n2G_QB = GetCurrent2GSquenue();
-	long long end_time = (long long)get_timestamp();
-	if ((end_time-curr_time)>10*1000){
-		//over 10 second
-		PrintDebugLog(DBG_HERE, "process get 2g num cost time over[%lld - %lld - %d]\n", curr_time, end_time, end_time-curr_time);
-	}
    	
    	sprintf(pstruHead->QA, "%d", nEleQryLogId);//strcpy(pstruHead->QA, Get2GNumber("Qry", n2G_QB));
-   	
-	curr_time = (long long)get_timestamp();
 	if(pstruHead->nProtocolType==PROTOCOL_2G)
 	{
 		bufclr(szMapObject);
@@ -132,11 +119,6 @@ RESULT QryElementParam(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pst
 		memset(&stuRepeInfo, 0, sizeof(stuRepeInfo));				
 		stuRepeInfo.DeviceId= pstruRepeater->nDeviceId;
 		stuRepeInfo.RepeaterId= pstruRepeater->nRepeaterId;
-		end_time = (long long)get_timestamp();
-		if ((end_time-curr_time)>10*1000){
-			//over 10 second
-			PrintDebugLog(DBG_HERE, "process sep cost time over[%lld - %lld - %d]\n", curr_time, end_time, end_time-curr_time);
-		}
 		    	
 	    PrintDebugLog(DBG_HERE, "CommType=[%d]DeviceId=[%d]RepeaterId=[%u]n2G_QB=[%d]nObjCount=[%d]\n", 
 	        nCommType, stuRepeInfo.DeviceId, stuRepeInfo.RepeaterId,  n2G_QB, nObjCount);
@@ -318,6 +300,10 @@ RESULT QryElementParam(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pst
 			if (checkBDTarget(pszSeperateStr[i])){
 				checkBDResult = true;
 			}
+			if (checkPRJPRMTarget(pszSeperateStr[i])){
+				checkPRJPRM = true;
+			}
+
 			memset(&struObjList[nObjCount], 0, sizeof(OBJECTSTRU));	
 		    struObjList[nObjCount].MapID = strHexToInt(pszSeperateStr[i]);
 			//PrintDebugLog(DBG_HERE, "~~~~~ mapid equal, %s - %d\n", pszSeperateStr[i], struObjList[nObjCount].MapID);
@@ -373,6 +359,9 @@ RESULT QryElementParam(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pst
 		
 		if (checkBDResult){
 			pstruHead->nCommandCode = COMMAND_QUERY_TEMP;
+		}
+		if(checkPRJPRM){
+			pstruHead->nCommandCode = COMMAND_PRJPRM_QRY;
 		}
 		    	
 	    PrintDebugLog(DBG_HERE, "CommType=[%d]DeviceId=[%d]RepeaterId=[%d]command=[%d]nObjCount=[%d]\n", 
@@ -517,6 +506,7 @@ RESULT SetElementParam(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pst
     PSTR pszSepMapDataStr[MAX_OBJECT_NUM];  /* 分割监控对象内容数组*/
 	INT nObjCount=0,nDataCount, i, j, nSepCount;
 	bool checkBDResult = false;
+	bool checkPRJPRM = false;
 
 	//SENDPACKAGE struSendPackage;		   /* 打包之前发送结构 */
 	OBJECTSTRU struObjList[MAX_OBJECT_NUM];
@@ -825,6 +815,9 @@ RESULT SetElementParam(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pst
 			if (checkBDTarget(pszSepMapIdStr[i])){
 				checkBDResult = true;
 			}
+			if(checkPRJPRMTarget(pszSepMapIdStr[i])){
+				checkPRJPRM = true;
+			}
 		    
 			memset(&struObjList[nObjCount], 0, sizeof(OBJECTSTRU));
 			struObjList[nObjCount].MapID = strHexToInt(pszSepMapIdStr[i]);
@@ -875,6 +868,9 @@ RESULT SetElementParam(INT nCommType, COMMANDHEAD *pstruHead, REPEATER_INFO *pst
 			
 			if (checkBDResult){
 				pstruHead->nCommandCode = COMMAND_FCTPRM_SET;
+			}
+			if(checkPRJPRM){
+				pstruHead->nCommandCode = COMMAND_PRJPRM_SET;
 			}
 			    	
 		    PrintDebugLog(DBG_HERE, "DeviceId[%d]\nRepeaterId[%d]\nn2G_QB[%d]\nnObjCount[%d]\n", stuRepeInfo.DeviceId,
@@ -2994,6 +2990,9 @@ RESULT DecodeQueryMapList(SENDPACKAGE *pstruSendPackage)
 		if (pstruSendPackage->struRepeater.nDeviceId > 0){
 			strncat(szMapId0009List, ",000000BD,000004BD", sizeof(szMapId0009List) - strlen(szMapId0009List) - 1);
 		}
+		if (pstruSendPackage->struRepeater.nDeviceId == 0){
+			strncat(szMapId0009List, ",00000198", sizeof(szMapId0009List) - strlen(szMapId0009List) - 1);
+		}
 	    //更新上报的监控量列表
 	    bResult = UpdateEleObjList(pstruSendPackage, szMapId0009List, szProvinceId, 0);
 	}
@@ -3486,6 +3485,9 @@ RESULT UpdateDasEleObjList(SENDPACKAGE *pstruSendPackage,  PSTR pszObjectList, P
 	{
 		if (pstruSendPackage->struRepeater.nDeviceId > 0){
 			strncat(szNeActiveRow, ",000000BD,000004BD", sizeof(szNeActiveRow) - strlen(szNeActiveRow) - 1);
+		}
+		if (pstruSendPackage->struRepeater.nDeviceId == 0){
+			strncat(szNeActiveRow, ",00000198", sizeof(szNeActiveRow) - strlen(szNeActiveRow) - 1);
 		}
 	}
     if (nUpdateWay == 1)//新增
